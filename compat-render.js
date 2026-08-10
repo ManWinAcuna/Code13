@@ -19,17 +19,14 @@ function setModalWidth(containerEl, narrow) {
   if (box) box.classList.toggle('modal-box-narrow', narrow);
 }
 
-function breakdownSection(title, score, rows) {
-  return `
-    <div class="breakdown-section">
-      <div class="breakdown-header"><span>${title}</span></div>
-      <div class="meter"><div class="meter-fill" style="width:${score}%"></div></div>
-      <div class="breakdown-rows">
-        ${rows.map((row) => `<div class="breakdown-row"><span>${row.label}</span><span class="breakdown-score">${row.score}</span></div>`).join('')}
-      </div>
-    </div>
-  `;
-}
+// Code13 (2026-08-10): breakdownSection / bonusSectionHtml /
+// renderCompatResults removed. They were only reachable from the sports
+// betting matchup pages, which aren't part of Code13 - and their
+// per-component rows (Lifepath/Day/Day-of-Year sub-scores per system) are
+// exactly the kind of "how the score was built" detail the public app
+// deliberately doesn't show. bonusChipsHtml + groupBonusNotes stay: lucky
+// number chips (with their day/month/year kind labels) are the one
+// component breakdown that stays visible, per the owner's explicit call.
 
 // Shared "Lucky Number Bonuses" section - every compatibility-style score in
 // the app (Compatibility, Energy Flow, Month Outlook) factors lucky number
@@ -73,68 +70,13 @@ function groupBonusNotes(bonuses) {
   });
 }
 
-function bonusSectionHtml(bonuses) {
-  const rows = groupBonusNotes(bonuses);
-  if (!rows.length) return '';
-  return `
-    <div class="breakdown-section bonus-section">
-      <div class="breakdown-header"><span>🍀 Lucky Number Bonuses</span></div>
-      <div class="breakdown-rows">
-        ${rows.map((n) => `<div class="breakdown-row bonus-row">${escapeHtml(n)}</div>`).join('')}
-      </div>
-    </div>
-  `;
-}
-
-// Chip treatment of the same grouped notes, for renderCompatHero below.
+// Chip treatment of the grouped notes, for renderCompatHero below.
 function bonusChipsHtml(bonuses) {
   const rows = groupBonusNotes(bonuses);
   if (!rows.length) return '';
   return `
     <div class="compat-bonus-row">
       ${rows.map((n) => `<div class="compat-bonus-chip"><span class="ic">🍀</span>${escapeHtml(n)}</div>`).join('')}
-    </div>
-  `;
-}
-
-function renderCompatResults(containerEl, r, nameA, nameB) {
-  containerEl.classList.add('active');
-  setModalWidth(containerEl, false);
-
-  const flagHtml = r.flags.map((f) => {
-    if (f === 'perfect') return '<div class="score-flag perfect">&#9733; PERFECT MATCH</div>';
-    if (f === 'ideal') return '<div class="score-flag ideal">&#9733; IDEAL MATCH</div>';
-    if (f === 'clash') return '<div class="score-flag clash">&#9888; CLASH</div>';
-    return '';
-  }).join('');
-
-  const numerologyRows = [
-    { label: `✨ Lifepath (${lifePathDisplayText(r.numerology.entityLifePath)} &rarr; ${lifePathDisplayText(r.numerology.dayLifePath)})`, score: r.numerology.lifePathScore },
-    { label: `📅 Day (${r.numerology.entityDay} &rarr; ${r.numerology.dayDay})`, score: r.numerology.dayScore },
-    { label: `🔢 Day of Year (${r.numerology.entityDoy} &rarr; ${r.numerology.dayDoy})`, score: r.numerology.doyScore },
-  ];
-
-  const vietnameseRows = [
-    { label: `${VIETNAMESE_ZODIAC_EMOJI[r.vietnamese.entityYearSign] || ''} Year (${r.vietnamese.entityYearSign} &rarr; ${r.vietnamese.dayYearSign})`, score: r.vietnamese.yearScore },
-    { label: `${VIETNAMESE_ZODIAC_EMOJI[r.vietnamese.entityMonthSign] || ''} Month (${r.vietnamese.entityMonthSign} &rarr; ${r.vietnamese.dayMonthSign})`, score: r.vietnamese.monthScore },
-    { label: `${VIETNAMESE_ZODIAC_EMOJI[r.vietnamese.entityDaySign] || ''} Day (${r.vietnamese.entityDaySign} &rarr; ${r.vietnamese.dayDaySign})`, score: r.vietnamese.daySignScore },
-  ];
-
-  const westernRows = [
-    { label: `${ZODIAC_SYMBOLS[r.western.entitySunSign] || ''} Sign (${r.western.entitySunSign} &rarr; ${r.western.daySunSign})`, score: r.western.score },
-  ];
-
-  containerEl.innerHTML = `
-    <div class="score-hero">
-      <div class="score-names">${escapeHtml(nameA)} <span class="score-vs">&times;</span> ${escapeHtml(nameB)}</div>
-      <div class="score-big ${scoreClass(r.finalScore)}">${r.finalScore}<span class="score-out-of">/100</span></div>
-      ${flagHtml}
-    </div>
-    <div class="score-breakdown">
-      ${breakdownSection('Numerology', r.numerology.score, numerologyRows)}
-      ${breakdownSection('Vietnamese Zodiac', r.vietnamese.score, vietnameseRows)}
-      ${breakdownSection('Western Zodiac', r.western.score, westernRows)}
-      ${bonusSectionHtml(r.bonuses)}
     </div>
   `;
 }
@@ -197,22 +139,11 @@ function flagsForScore(score) {
   return flags;
 }
 
-// Deep Compatibility (2026-08-07) - one line of transparent math above the
-// existing Today/Imprint call-outs: exactly what fed the blended headline
-// number, so nothing about "Deep Compatibility" is a black box. Skipped
-// entirely (not shown as "0%") when there's no imprint data to blend - the
-// headline is just today's compatibility in that case, no blend happened.
-function deepBlendStripHtml(deep) {
-  if (deep.noImprintData) {
-    return `<div class="deep-blend-strip deep-blend-note">No imprint data for this pairing — showing today's compatibility only.</div>`;
-  }
-  const imprintPct = Math.round(deep.blendWeight * 100);
-  const currentPct = 100 - imprintPct;
-  return `
-    <div class="deep-blend-strip">
-      Today <b>${deep.currentScore}</b> &times; ${currentPct}% + Imprint <b>${deep.imprintScore}</b> &times; ${imprintPct}% = <b>${deep.deepScore}</b> Deep Compatibility
-    </div>`;
-}
+// Code13 (2026-08-10): numerology-app's deepBlendStripHtml - the one line
+// of transparent math ("Today X × N% + Imprint Y × M% = Z") - is removed
+// here on purpose. The public app never shows the blend's ingredients,
+// weights, or formula; the Deep Compatibility number stands alone. Same
+// rule strips the ingredient numbers out of the reveal/pill labels below.
 
 function compatHeroDate(date) {
   return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
@@ -324,16 +255,15 @@ function renderCompatHero(containerEl, r, nameA, nameB, opts) {
       </div>
     </div>`;
 
-  // Deep mode's imprint pill already has its score in hand (opts.deep.
-  // imprint was computed up front to build the blend) - the button label
-  // shows it immediately instead of staying a mystery until tapped, and
-  // the "full breakdown" reveal gets relabeled "Today's Compatibility"
-  // since it's now one ingredient of the headline, not the headline itself.
+  // Code13: no ingredient numbers in the labels - the deep score is the
+  // only number this surface leads with (the per-system meters inside the
+  // reveal stay, per the owner's call - systems' scores are content, the
+  // blend's ingredients/weights are method).
   const pillLabel = deep
-    ? (deep.noImprintData ? '✨ No Imprint Data' : `✨ Imprint ${deep.imprintScore} — see what matched`)
+    ? (deep.noImprintData ? '✨ No Imprint Data' : '✨ See what matched')
     : '✨ Check My Imprints';
-  const revealLabelClosed = deep ? `▾ Today's Compatibility: ${r.finalScore}` : '▾ See full breakdown';
-  const revealLabelOpen = deep ? `▴ Hide Today's Compatibility` : '▴ Hide full breakdown';
+  const revealLabelClosed = '▾ See full breakdown';
+  const revealLabelOpen = '▴ Hide full breakdown';
 
   containerEl.innerHTML = `
     <div class="compat-hero${opts.compact ? ' compact' : ''}" style="--tier-c:${COMPAT_TIER_COLOR[tier]}; --tier-glow:${COMPAT_TIER_GLOW[tier]}">
@@ -350,7 +280,6 @@ function renderCompatHero(containerEl, r, nameA, nameB, opts) {
       <div class="compat-verdict-head">${verdict.head}</div>
       <div class="compat-verdict-body">${verdict.body}</div>
       ${cardsHtml}
-      ${deep ? deepBlendStripHtml(deep) : ''}
       ${opts.pillDateA && opts.pillDateB ? `<button type="button" class="imprint-pill" data-imprint-pill>${pillLabel}</button><div class="imprint-pill-body" data-imprint-pill-body hidden></div>` : ''}
       ${bonusChipsHtml(r.bonuses)}
       <button type="button" class="compat-reveal-btn" data-compat-reveal>${revealLabelClosed}</button>
@@ -408,6 +337,15 @@ function imprintPossessive(name) {
   return IMPRINT_POSSESSIVE[name] || `${name}'s`;
 }
 
+// Code13 (2026-08-10): imprint results speak in tier words, not numbers -
+// the per-domain/per-direction scores and per-match "+N" points are the
+// scoring internals the public app keeps to itself. Tier classes still
+// drive the colors, so the read is just as immediate.
+const IMPRINT_TIER_WORDS = { good: 'Strong', mid: 'Mild', bad: 'Faint' };
+function imprintTierWord(tier) {
+  return IMPRINT_TIER_WORDS[tier] || 'Mild';
+}
+
 // m.domains (2026-08-07) is an array of "emoji Label" strings tagging which
 // life area(s) that theme number belongs to - empty for the domain-agnostic
 // bonuses (Lucky Number, Rare Coincidence), which don't get a tag.
@@ -418,12 +356,12 @@ function imprintDomainTagsHtml(domains) {
 
 function imprintAlignmentResultHtml(result, personName, candidateName) {
   const rows = result.matches.length
-    ? result.matches.map((m) => `<div class="imprint-match-row"><b>${escapeHtml(m.label)}:</b> ${escapeHtml(m.text)}${imprintDomainTagsHtml(m.domains)} <span class="imprint-match-pts">+${m.points}</span></div>`).join('')
+    ? result.matches.map((m) => `<div class="imprint-match-row"><b>${escapeHtml(m.label)}:</b> ${escapeHtml(m.text)}${imprintDomainTagsHtml(m.domains)}</div>`).join('')
     : '<div class="imprint-match-empty">No imprint themes matched this date.</div>';
   return `
     <div class="imprint-result">
       <div class="imprint-result-head">
-        <div class="imprint-result-score ${result.tier}">${result.score}</div>
+        <div class="imprint-result-score word ${result.tier}">${imprintTierWord(result.tier)}</div>
         <div class="imprint-result-label">${escapeHtml(imprintPossessive(personName))} imprints <i>&times;</i> ${escapeHtml(candidateName)}</div>
       </div>
       <button type="button" class="imprint-reveal-btn" data-imprint-reveal>▾ See what matched</button>
@@ -442,8 +380,8 @@ function imprintAlignmentResultHtml(result, personName, candidateName) {
 function imprintPersonMatchRow(m, nameA, nameB) {
   const aSide = `${imprintPossessive(nameA)} ${m.aLabel} (${m.aLp}LP)`;
   const bSide = `${imprintPossessive(nameB)} ${m.bLabel} (${m.bLp}LP)`;
-  const verb = m.kind === 'exact' ? 'exactly matches' : `is compatible (${m.compatScore}) with`;
-  return { label: aSide, text: `${verb} ${bSide}`, points: m.points };
+  const verb = m.kind === 'exact' ? 'exactly matches' : 'is compatible with';
+  return { label: aSide, text: `${verb} ${bSide}` };
 }
 
 // 2026-08-07 domain reweigh: a flat match list stopped being useful once
@@ -461,14 +399,14 @@ function imprintPersonAlignmentResultHtml(result, nameA, nameB) {
   const domainKeys = Object.keys(result.domains);
   const chips = domainKeys.map((key) => {
     const dm = result.domains[key];
-    return `<button type="button" class="imprint-domain-chip ${dm.tier}" data-imprint-domain="${key}">${dm.emoji} ${escapeHtml(dm.label)} <b>${dm.score}</b></button>`;
+    return `<button type="button" class="imprint-domain-chip ${dm.tier}" data-imprint-domain="${key}">${dm.emoji} ${escapeHtml(dm.label)}</button>`;
   }).join('');
   const panels = domainKeys.map((key) => {
     const dm = result.domains[key];
     const rows = dm.matches.length
       ? dm.matches.map((m) => {
           const row = imprintPersonMatchRow(m, nameA, nameB);
-          return `<div class="imprint-match-row"><b>${escapeHtml(row.label)}:</b> ${escapeHtml(row.text)}${imprintPersonMatchTagHtml(m)} <span class="imprint-match-pts">+${row.points}</span></div>`;
+          return `<div class="imprint-match-row"><b>${escapeHtml(row.label)}:</b> ${escapeHtml(row.text)}${imprintPersonMatchTagHtml(m)}</div>`;
         }).join('')
       : '<div class="imprint-match-empty">No resonance in this domain.</div>';
     return `<div class="imprint-domain-panel" data-imprint-domain-panel="${key}" hidden>${rows}</div>`;
@@ -477,7 +415,7 @@ function imprintPersonAlignmentResultHtml(result, nameA, nameB) {
   return `
     <div class="imprint-result imprint-result-domains">
       <div class="imprint-result-head">
-        <div class="imprint-result-score ${result.tier}">${result.score}</div>
+        <div class="imprint-result-score word ${result.tier}">${imprintTierWord(result.tier)}</div>
         <div class="imprint-result-label">${escapeHtml(nameA)} <i>&times;</i> ${escapeHtml(nameB)} Imprints</div>
       </div>
       <div class="imprint-domain-grid">${chips}</div>
