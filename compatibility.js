@@ -1,4 +1,21 @@
-let mode = null; // 'today' | 'date'
+/* Code13's generalized Compatibility flow (2026-08-10). One question up
+   front - "What are you comparing with?" Person / Object / Place - instead
+   of numerology-app's today/date/imprint mode split, per the locked launch
+   spec. All scoring reuses the established engines untouched:
+   computeCompatibility (compat-engine.js) + computeDeepCompatibility
+   (deep-compat.js) + renderCompatHero (compat-render.js). Person mode runs
+   the person-vs-person deep blend; Object/Place run the event-date imprint
+   blend - the same isPersonMode fork numerology-app's own modes use.
+
+   Name lookups reuse db-core.js's real Wikipedia/Wikidata infra:
+   - Person:  Wikipedia opensearch suggestions (famous.js's pattern) ->
+              fetchWikidataId -> fetchKeyDate (P569 birth date)
+   - Object:  lookupKeyDateByNameWithTitle with the prose fallback ON
+              (founded/opened/released, same chain EMAX trusts)
+   - Place:   lookupPlaceFoundingDate (country-fallback rule: a city
+              resolves through its country's founding/union date first) */
+
+let mode = null; // 'person' | 'object' | 'place'
 
 const modeSelectEl = document.getElementById('modeSelect');
 const compatFormEl = document.getElementById('compatForm');
@@ -14,140 +31,240 @@ compatModalOverlayEl.addEventListener('click', (e) => {
   if (e.target === compatModalOverlayEl) closeCompatModal();
 });
 
-// Source-scoped search (2026-08-06) - replaces the old single giant
-// <select> of every Database entry flattened together, which had gotten
-// unusable now that EMAX alone can hold thousands of entries across dozens
-// of categories. Pick a source first (Database or EMAX), then type to
-// search just that source - same player-search/player-suggestions UI
-// pattern Famous Lookup already uses (famous.js), reused here instead of
-// inventing a second search widget. Year-only entries (no full date) are
-// excluded, same precedent as EMAX's own Reverse Lookup/filters - a bare
-// year can't drive a real compatibility calculation.
-function getSourceEntries(source) {
-  if (source !== 'database' && source !== 'emax') return [];
-  const loaded = source === 'database' ? loadDB() : loadEmaxDB();
-  const entries = [];
-  loaded.categories.forEach((cat) => {
-    cat.entries.forEach((e) => {
-      if (e.date) entries.push({ name: e.name, date: e.date, category: cat.name });
-    });
-  });
-  return entries;
+/* ---------------- Wikipedia lookup cache ----------------
+   Launch-spec requirement: the personal tool's lookup volume was one
+   user; a store app's isn't. Successful name->date resolutions are
+   cached in localStorage so repeat lookups (the same famous person,
+   the same company every curious new user tries) never re-hit
+   Wikipedia/Wikidata. Founding/birth dates don't change, so entries
+   have no TTL - just a size cap, trimmed oldest-first. */
+const LOOKUP_CACHE_KEY = 'code13_lookup_cache_v1';
+const LOOKUP_CACHE_MAX = 400;
+
+function readLookupCache() {
+  try { return JSON.parse(localStorage.getItem(LOOKUP_CACHE_KEY)) || {}; } catch (e) { return {}; }
 }
 
-// Current search results per person key ("A"/"B") - held here so the
-// suggestions list's click handler can look up which entry a given row
-// actually refers to without re-running the search.
-const sourceMatches = {};
+function cacheGet(kind, name) {
+  const hit = readLookupCache()[kind + ':' + name.toLowerCase()];
+  return hit || null;
+}
 
-// personToggle (2026-08-07): only the Imprint Alignment mode's Candidate
-// Date field needs this - Database picks already imply a person, EMAX
-// picks already imply an event, but a hand-typed date is ambiguous (a
-// friend's birthday vs a release date look identical as MM/DD/YYYY). Only
-// shown while the source-picker is on "Type manually" - swapping to
-// Database/EMAX makes it moot, so it hides itself.
-function personInputHTML(label, key, personToggle) {
-  const toggle = personToggle
-    ? `<label class="imprint-person-toggle" data-person="${key}"><input type="checkbox" class="imprint-person-checkbox" data-person="${key}"> This is a person, not an event</label>`
-    : '';
+function cachePut(kind, name, result) {
+  const cache = readLookupCache();
+  cache[kind + ':' + name.toLowerCase()] = { ...result, ts: Date.now() };
+  const keys = Object.keys(cache);
+  if (keys.length > LOOKUP_CACHE_MAX) {
+    keys.sort((a, b) => (cache[a].ts || 0) - (cache[b].ts || 0))
+      .slice(0, keys.length - LOOKUP_CACHE_MAX)
+      .forEach((k) => { delete cache[k]; });
+  }
+  try { localStorage.setItem(LOOKUP_CACHE_KEY, JSON.stringify(cache)); } catch (e) { /* storage full - lookups still work uncached */ }
+}
+
+/* ---------------- Input blocks ---------------- */
+
+const MODE_COPY = {
+  person: { label: 'Their birthday', search: 'Search a famous person...', verb: 'born' },
+  object: { label: 'Its start date', search: 'Search a company, movie, brand...', verb: 'founded' },
+  place: { label: 'Its founding date', search: 'Search a city, state, country...', verb: 'founded' },
+};
+
+// "You" side: birthday only, prefilled from the saved profile so a
+// returning user never retypes their own date. The other side is
+// mode-shaped: a Wikipedia-backed name search (with a per-row status
+// line for the async date resolution) or plain manual entry; person
+// mode also offers the user's own saved Database people.
+function youInputHTML() {
+  const profile = loadProfile();
+  const prefill = profile && profile.date ? isoToDisplay(profile.date) : '';
   return `
-    <div class="person-input box" data-person="${key}">
-      <div class="box-label">${label}</div>
-      <select class="db-picker source-picker" data-person="${key}">
-        <option value="manual">✍️ Type manually</option>
-        <option value="database">🗂 Search Database</option>
-        <option value="emax">⚡ Search EMAX</option>
-      </select>
-      <div class="player-search-wrap source-search-wrap" data-person="${key}" hidden>
-        <input type="text" class="player-search source-search" data-person="${key}" placeholder="Search by name..." autocomplete="off">
-        <div class="player-suggestions source-suggestions" data-person="${key}"></div>
-      </div>
+    <div class="person-input box" data-person="A">
+      <div class="box-label">You</div>
       <div class="inline-form">
-        <input type="text" class="person-name" data-person="${key}" placeholder="Name (optional)">
-        <input type="text" class="person-date" data-person="${key}" inputmode="numeric" placeholder="MM/DD/YYYY" maxlength="10" autocomplete="off">
+        <input type="text" class="person-name" data-person="A" placeholder="Name (optional)">
+        <input type="text" class="person-date" data-person="A" inputmode="numeric" placeholder="MM/DD/YYYY" maxlength="10" autocomplete="off" value="${prefill}">
       </div>
-      ${toggle}
     </div>
   `;
 }
 
-function renderSourceSuggestions(key, matches) {
-  const container = document.querySelector(`.source-suggestions[data-person="${key}"]`);
-  container.innerHTML = matches.length
-    ? matches.slice(0, 30).map((m, idx) => `
+function otherInputHTML() {
+  const copy = MODE_COPY[mode];
+  const dbOption = mode === 'person' ? '<option value="database">🗂 My Database</option>' : '';
+  return `
+    <div class="person-input box" data-person="B">
+      <div class="box-label">${copy.label}</div>
+      <select class="db-picker source-picker" data-person="B">
+        <option value="wiki">🔎 Look up by name</option>
+        ${dbOption}
+        <option value="manual">✍️ Type the date myself</option>
+      </select>
+      <div class="player-search-wrap source-search-wrap" data-person="B">
+        <input type="text" class="player-search source-search" data-person="B" placeholder="${copy.search}" autocomplete="off">
+        <div class="player-suggestions source-suggestions" data-person="B"></div>
+      </div>
+      <div class="famous-status" id="lookupStatus"></div>
+      <div class="inline-form">
+        <input type="text" class="person-name" data-person="B" placeholder="Name">
+        <input type="text" class="person-date" data-person="B" inputmode="numeric" placeholder="MM/DD/YYYY" maxlength="10" autocomplete="off">
+      </div>
+    </div>
+  `;
+}
+
+function setLookupStatus(message, isError) {
+  const el = document.getElementById('lookupStatus');
+  if (!el) return;
+  el.textContent = message;
+  el.className = 'famous-status' + (isError ? ' error' : '');
+}
+
+/* ---------------- Name search (suggestions) ---------------- */
+
+let searchMatches = [];
+let searchDebounceTimer = null;
+
+function renderSuggestions(rows) {
+  const container = document.querySelector('.source-suggestions[data-person="B"]');
+  container.innerHTML = rows.length
+    ? rows.map((m, idx) => `
       <div class="suggestion-item" data-index="${idx}">
-        <span class="suggestion-name">${escapeHtml(m.name)}</span>
-        <span class="suggestion-meta">${escapeHtml(m.category)}</span>
+        <span class="suggestion-name">${escapeHtml(m.title)}</span>
+        <span class="suggestion-meta">${escapeHtml(m.description || '').slice(0, 40)}</span>
       </div>
     `).join('')
     : '<div class="suggestion-empty">No matches found</div>';
   container.classList.add('open');
 }
 
-function handleSourceSearchInput(key, source, value) {
-  const container = document.querySelector(`.source-suggestions[data-person="${key}"]`);
-  const q = value.trim().toLowerCase();
+function fetchWikiSuggestions(query) {
+  const url = `https://en.wikipedia.org/w/api.php?action=opensearch&search=${encodeURIComponent(query)}&limit=8&namespace=0&format=json&origin=*`;
+  fetch(url)
+    .then((res) => res.json())
+    .then(([, titles, descriptions]) => {
+      searchMatches = titles.map((title, i) => ({ title, description: descriptions[i] || '' }));
+      renderSuggestions(searchMatches);
+    })
+    .catch(() => {
+      searchMatches = [];
+      const container = document.querySelector('.source-suggestions[data-person="B"]');
+      container.innerHTML = '<div class="suggestion-empty">Search failed - check your connection</div>';
+      container.classList.add('open');
+    });
+}
+
+function searchDatabaseEntries(query) {
+  const q = query.toLowerCase();
+  const rows = [];
+  loadDB().categories.forEach((cat) => {
+    cat.entries.forEach((e) => {
+      if (e.date && e.name.toLowerCase().includes(q)) rows.push({ title: e.name, description: cat.name, date: e.date });
+    });
+  });
+  return rows.slice(0, 30);
+}
+
+function handleSearchInput(value) {
+  const container = document.querySelector('.source-suggestions[data-person="B"]');
+  const source = document.querySelector('.source-picker[data-person="B"]').value;
+  const q = value.trim();
   if (!q) {
-    sourceMatches[key] = [];
+    searchMatches = [];
     container.innerHTML = '';
     container.classList.remove('open');
     return;
   }
-  const matches = getSourceEntries(source).filter((e) => e.name.toLowerCase().includes(q));
-  sourceMatches[key] = matches;
-  renderSourceSuggestions(key, matches);
+  if (source === 'database') {
+    searchMatches = searchDatabaseEntries(q);
+    renderSuggestions(searchMatches);
+    return;
+  }
+  clearTimeout(searchDebounceTimer);
+  searchDebounceTimer = setTimeout(() => fetchWikiSuggestions(q), 300);
 }
 
-function selectSourceEntry(key, entry) {
-  document.querySelector(`.person-date[data-person="${key}"]`).value = isoToDisplay(entry.date);
-  document.querySelector(`.person-name[data-person="${key}"]`).value = entry.name;
-  document.querySelector(`.source-search[data-person="${key}"]`).value = entry.name;
-  const container = document.querySelector(`.source-suggestions[data-person="${key}"]`);
+/* ---------------- Date resolution per pick ---------------- */
+
+const KIND_VERB = { born: 'born', founded: 'founded', opened: 'opened', released: 'released' };
+
+function resolvePickedDate(title) {
+  const cached = cacheGet(mode, title);
+  if (cached) return Promise.resolve(cached);
+
+  let chain;
+  if (mode === 'person') {
+    chain = fetchWikidataId(title).then((qid) => (qid ? fetchKeyDate(qid) : null));
+  } else if (mode === 'place') {
+    chain = lookupPlaceFoundingDate(title);
+  } else {
+    chain = lookupKeyDateByNameWithTitle(title, true);
+  }
+  return chain.then((result) => {
+    if (result) cachePut(mode, title, result);
+    return result;
+  });
+}
+
+function selectSuggestion(match) {
+  const container = document.querySelector('.source-suggestions[data-person="B"]');
   container.innerHTML = '';
   container.classList.remove('open');
+  document.querySelector('.source-search[data-person="B"]').value = match.title;
+  document.querySelector('.person-name[data-person="B"]').value = match.title;
+
+  // A Database pick already carries its date - no network involved.
+  if (match.date) {
+    document.querySelector('.person-date[data-person="B"]').value = isoToDisplay(match.date);
+    setLookupStatus('', false);
+    return;
+  }
+
+  setLookupStatus('Looking up date...', false);
+  resolvePickedDate(match.title)
+    .then((info) => {
+      if (!info || !info.date) {
+        setLookupStatus(`No exact date found for ${match.title}. You can type it manually below.`, true);
+        return;
+      }
+      document.querySelector('.person-date[data-person="B"]').value = isoToDisplay(info.date);
+      const verb = KIND_VERB[info.kind] || MODE_COPY[mode].verb;
+      const via = info.via === 'country' ? ' (via its country)' : '';
+      setLookupStatus(`✓ ${info.title || match.title} — ${verb} ${info.date}${via}`, false);
+    })
+    .catch(() => setLookupStatus('Lookup failed. Try again, or type the date manually.', true));
 }
 
-function wirePersonInputs() {
+/* ---------------- Wiring ---------------- */
+
+function wireInputs() {
   document.querySelectorAll('.person-date').forEach((input) => attachDateMask(input));
 
-  document.querySelectorAll('.source-picker').forEach((sel) => {
-    sel.addEventListener('change', () => {
-      const key = sel.dataset.person;
-      const wrap = document.querySelector(`.source-search-wrap[data-person="${key}"]`);
-      const searchInput = document.querySelector(`.source-search[data-person="${key}"]`);
-      wrap.hidden = sel.value === 'manual';
-      if (!wrap.hidden) { searchInput.value = ''; searchInput.focus(); }
-      document.querySelector(`.source-suggestions[data-person="${key}"]`).classList.remove('open');
-      // Only meaningful for a hand-typed date - Database already implies a
-      // person, EMAX already implies an event.
-      const personToggle = document.querySelector(`.imprint-person-toggle[data-person="${key}"]`);
-      if (personToggle) personToggle.hidden = sel.value !== 'manual';
-    });
+  const picker = document.querySelector('.source-picker[data-person="B"]');
+  picker.addEventListener('change', () => {
+    const wrap = document.querySelector('.source-search-wrap[data-person="B"]');
+    const searchInput = document.querySelector('.source-search[data-person="B"]');
+    wrap.hidden = picker.value === 'manual';
+    setLookupStatus('', false);
+    if (!wrap.hidden) { searchInput.value = ''; searchInput.focus(); }
+    document.querySelector('.source-suggestions[data-person="B"]').classList.remove('open');
   });
 
-  document.querySelectorAll('.source-search').forEach((input) => {
-    input.addEventListener('input', () => {
-      const key = input.dataset.person;
-      const source = document.querySelector(`.source-picker[data-person="${key}"]`).value;
-      handleSourceSearchInput(key, source, input.value);
-    });
+  document.querySelector('.source-search[data-person="B"]').addEventListener('input', (e) => {
+    handleSearchInput(e.target.value);
   });
 
-  document.querySelectorAll('.source-suggestions').forEach((container) => {
-    container.addEventListener('click', (e) => {
-      const item = e.target.closest('.suggestion-item');
-      if (!item) return;
-      const key = container.dataset.person;
-      const match = (sourceMatches[key] || [])[Number(item.dataset.index)];
-      if (match) selectSourceEntry(key, match);
-    });
+  document.querySelector('.source-suggestions[data-person="B"]').addEventListener('click', (e) => {
+    const item = e.target.closest('.suggestion-item');
+    if (!item) return;
+    const match = searchMatches[Number(item.dataset.index)];
+    if (match) selectSuggestion(match);
   });
 }
 
 document.addEventListener('click', (e) => {
   document.querySelectorAll('.source-suggestions.open').forEach((container) => {
-    const key = container.dataset.person;
-    const searchInput = document.querySelector(`.source-search[data-person="${key}"]`);
+    const searchInput = document.querySelector('.source-search[data-person="B"]');
     if (e.target !== searchInput && !container.contains(e.target)) container.classList.remove('open');
   });
 });
@@ -159,15 +276,8 @@ document.querySelectorAll('.mode-card').forEach((card) => {
     compatFormEl.classList.add('active');
     closeCompatModal();
     compatResultsEl.innerHTML = '';
-
-    if (mode === 'today') {
-      personInputsEl.innerHTML = personInputHTML('Birthday', 'A');
-    } else if (mode === 'imprint') {
-      personInputsEl.innerHTML = personInputHTML('Person (whose imprints)', 'A') + personInputHTML('Candidate Date', 'B', true);
-    } else {
-      personInputsEl.innerHTML = personInputHTML('Person A', 'A') + personInputHTML('Person B', 'B');
-    }
-    wirePersonInputs();
+    personInputsEl.innerHTML = youInputHTML() + otherInputHTML();
+    wireInputs();
   });
 });
 
@@ -190,70 +300,28 @@ function parseDateInput(value) {
 }
 
 document.getElementById('calculateBtn').addEventListener('click', () => {
-  const dateAInput = document.querySelector('.person-date[data-person="A"]');
-  const dateAISO = displayToISO(dateAInput.value);
+  const dateAISO = displayToISO(document.querySelector('.person-date[data-person="A"]').value);
   if (!dateAISO) {
-    alert(`Please enter a valid date (MM/DD/YYYY) for ${mode === 'today' ? 'the birthday' : (mode === 'imprint' ? 'the person' : 'Person A')}.`);
+    alert('Please enter a valid date (MM/DD/YYYY) for your birthday.');
     return;
   }
+  const dateBISO = displayToISO(document.querySelector('.person-date[data-person="B"]').value);
+  if (!dateBISO) {
+    alert(`Please enter or look up a valid date for the ${mode}.`);
+    return;
+  }
+
   const dateA = parseDateInput(dateAISO);
-  const nameA = document.querySelector('.person-name[data-person="A"]').value.trim()
-    || (mode === 'today' ? 'This birthday' : 'Person A');
+  const dateB = parseDateInput(dateBISO);
+  const nameA = document.querySelector('.person-name[data-person="A"]').value.trim() || 'You';
+  const nameB = document.querySelector('.person-name[data-person="B"]').value.trim()
+    || (mode === 'person' ? 'Them' : (mode === 'place' ? 'This place' : 'This one'));
 
-  let dateB;
-  let nameB;
-  if (mode === 'today') {
-    const now = new Date();
-    dateB = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    nameB = 'Today';
-  } else {
-    const dateBInput = document.querySelector('.person-date[data-person="B"]');
-    const dateBISO = displayToISO(dateBInput.value);
-    if (!dateBISO) {
-      alert(`Please enter a valid date (MM/DD/YYYY) for ${mode === 'imprint' ? 'the candidate date' : 'Person B'}.`);
-      return;
-    }
-    dateB = parseDateInput(dateBISO);
-    nameB = document.querySelector('.person-name[data-person="B"]').value.trim() || (mode === 'imprint' ? 'Candidate Date' : 'Person B');
-  }
-
-  // Imprint Alignment (2026-08-06): one-sided read (A's history vs B as
-  // the candidate), not a two-equal-sides compat score - its own render
-  // function, not renderCompatHero. Fixed 2026-08-07: a Candidate Date
-  // picked from Database is a real PERSON (their own imprint history
-  // matters, not just whether their birthday lands on a themed day), so
-  // that case switches to the person-vs-person cross-comparison. A
-  // hand-typed date defaults to the date-based read too (safe default,
-  // unknown by default) UNLESS the "This is a person" checkbox is
-  // checked - added since a friend's birthday and a release date are
-  // indistinguishable as plain MM/DD/YYYY.
-  if (mode === 'imprint') {
-    const sourceB = document.querySelector('.source-picker[data-person="B"]').value;
-    const manualPersonCheckbox = document.querySelector('.imprint-person-checkbox[data-person="B"]');
-    const isPerson = sourceB === 'database' || (sourceB === 'manual' && manualPersonCheckbox && manualPersonCheckbox.checked);
-    compatResultsEl.classList.add('active');
-    setModalWidth(compatResultsEl, false);
-    if (isPerson) {
-      const result = computeImprintPersonAlignment(dateA, dateB);
-      compatResultsEl.innerHTML = imprintPersonAlignmentResultHtml(result, nameA, nameB);
-    } else {
-      const result = computeImprintAlignment(dateA, dateB);
-      compatResultsEl.innerHTML = imprintAlignmentResultHtml(result, nameA, nameB);
-    }
-    wireImprintRevealButtons(compatResultsEl);
-    compatModalOverlayEl.classList.add('active');
-    return;
-  }
-
-  // Deep Compatibility (2026-08-07): the headline number on these 2 modes
-  // is now the blended fusion of today's/this-pairing's compat with first-
-  // imprint alignment (deep-compat.js), not the raw compat score alone -
-  // "today" blends current compat with the event-date imprint read,
-  // "date" blends it with the person-vs-person cross-comparison. The
-  // dedicated Imprint Alignment mode above stays pure (it never computed a
-  // current-compat score to begin with, so there's nothing to fuse there).
+  // Person runs the person-vs-person deep blend; Object/Place run the
+  // event-date imprint blend - same isPersonMode fork as numerology-app.
+  const isPerson = mode === 'person';
   const result = computeCompatibility(dateA, dateB);
-  const deep = computeDeepCompatibility(dateA, dateB, mode === 'date');
-  renderCompatHero(compatResultsEl, result, nameA, nameB, { dateA, dateB, pillDateA: dateA, pillDateB: dateB, pillPersonMode: mode === 'date', deep });
+  const deep = computeDeepCompatibility(dateA, dateB, isPerson);
+  renderCompatHero(compatResultsEl, result, nameA, nameB, { dateA, dateB, pillDateA: dateA, pillDateB: dateB, pillPersonMode: isPerson, deep });
   compatModalOverlayEl.classList.add('active');
 });

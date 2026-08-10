@@ -37,21 +37,27 @@
   <script src="update-check.js?v=4"></script>
 
 
+  <!-- Code13's generalized entry flow (locked spec 2026-08-10): one
+       question up front - person, object, or place - instead of
+       numerology-app's today/date/imprint mode split. -->
+  <div class="compat-title-row">
+    <h1 class="page-title">What are you comparing with?</h1>
+  </div>
   <div class="compat-mode-select" id="modeSelect">
-    <button class="mode-card" data-mode="today">
-      <div class="mode-icon">📅</div>
-      <div class="mode-title">Compatibility with Today</div>
-      <div class="mode-desc">See how a birthday lines up with today's date.</div>
+    <button class="mode-card" data-mode="person">
+      <div class="mode-icon">🧑</div>
+      <div class="mode-title">A Person</div>
+      <div class="mode-desc">A partner, friend, family member, or anyone with a birthday.</div>
     </button>
-    <button class="mode-card" data-mode="date">
-      <div class="mode-icon">🔗</div>
-      <div class="mode-title">Compatibility with Another Date</div>
-      <div class="mode-desc">Compare two birthdays against each other.</div>
+    <button class="mode-card" data-mode="object">
+      <div class="mode-icon">🎬</div>
+      <div class="mode-title">An Object</div>
+      <div class="mode-desc">A company, movie, brand, album, product — anything with a start date.</div>
     </button>
-    <button class="mode-card" data-mode="imprint">
-      <div class="mode-icon">🎯</div>
-      <div class="mode-title">Imprint Alignment</div>
-      <div class="mode-desc">See if a date resonates with someone's first imprints.</div>
+    <button class="mode-card" data-mode="place">
+      <div class="mode-icon">🌍</div>
+      <div class="mode-title">A Place</div>
+      <div class="mode-desc">A city, state, or country and its founding energy.</div>
     </button>
   </div>
 
@@ -89,7 +95,7 @@
 <script src="imprint-alignment.js?v=7"></script>
 <script src="deep-compat.js?v=1"></script>
 <script src="compat-render.js?v=11"></script>
-<script src="compatibility.js?v=7"></script>
+<script src="compatibility.js?v=8"></script>
 <script src="godlike.js?v=2"></script>
 </body>
 </html>
