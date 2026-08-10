@@ -434,7 +434,8 @@ function init() {
       box.innerHTML = c13LockHtml(
         'The Database',
         'Your mom, your boss, the name that just texted you. Everyone runs on a number they have never seen.',
-        'You have read yourself. Now read the room.'
+        'You have read yourself. Now read the room.',
+      'database'
       );
     }
     wireInitStatic();

@@ -436,7 +436,8 @@ if (c13ProfileGated) {
     pinnaclesBox.outerHTML = c13LockHtml(
       'Pinnacles',
       'Your life has four chapters, each with different rules. Playing chapter 2 moves in a chapter 3 year is how people lose whole years.',
-      whyLine
+      whyLine,
+      'pinnacles'
     );
   }
 }

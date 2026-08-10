@@ -62,9 +62,9 @@
   /* ---------------- Lock tease cards ----------------
      Locked copy voice: direct value tease + progress framing. Each locked
      surface names exactly what's behind the lock, terse, then Code13+. */
-  window.c13LockHtml = function (title, tease, progress) {
+  window.c13LockHtml = function (title, tease, progress, context) {
     return `
-      <div class="c13-lock" onclick="c13OpenPaywall('lock')" role="button" tabindex="0">
+      <div class="c13-lock" onclick="c13OpenPaywall('${context || 'generic'}')" role="button" tabindex="0">
         <div class="c13-lock-top"><span class="c13-lock-ic">🔒</span><span class="c13-lock-title">${title}</span></div>
         <div class="c13-lock-tease">${tease}</div>
         ${progress ? `<div class="c13-lock-progress">${progress}</div>` : ''}
@@ -111,8 +111,27 @@
     if (el) el.remove();
   };
 
+  // Each lock opens the paywall with its own pitch (owner's call: no one
+  // generic body for every popup). The skeleton - headline, founding
+  // line, signature, tiers - stays constant; the body sells the specific
+  // thing they just reached for. The famous context skips the proof line
+  // since it IS the proof engine.
+  const PROOF_LINE = " Think it's not real? Run anyone famous and check.";
+  const CONTEXT_COPY = {
+    hours: 'You saw the first number of your best hour. The full map is every hour of every day, scored green to red, your financial hour marked.',
+    database: 'One profile was you. The Database is everyone else: family, friends, the new name in your phone, saved and readable forever.',
+    pinnacles: 'Four chapters, their ruling numbers, and the exact ages they flip. Know the chapter before you play it.',
+    roadmap: 'Every year of your chapter, scored before it arrives. Know which years to push and which years to protect.',
+    calendar: 'Every month ahead, scored day by day before it starts. See the storm days and the green days before you book anything that matters.',
+    compat: 'Unlimited readings. People, companies, cities, dates. Never talk yourself out of checking again.',
+    famous: 'Unlimited lookups. Presidents, champions, your favorite artist, your ex. Run anyone, forever.',
+    generic: 'Every person read. Every day scored. Every hour timed.',
+  };
+
   window.c13OpenPaywall = function (context) {
     if (document.getElementById('c13Paywall')) return;
+    const pitch = CONTEXT_COPY[context] || CONTEXT_COPY.generic;
+    const bodyText = context === 'famous' ? pitch : pitch + PROOF_LINE;
     const cards = TIERS.map((t) => `
       <div class="c13-tier${t.badgeHot ? ' hot' : ''}${t.badgeGold ? ' gold' : ''}">
         <div class="c13-tier-badge">${t.badge}</div>
@@ -130,7 +149,7 @@
         <div class="c13-pw-head">Unlock Your Full Code</div>
         <div class="c13-pw-sub">Founding launch offer · first 130 members</div>
         <div class="c13-pw-sig">From Guessing to Planning</div>
-        <div class="c13-pw-body">Every person read. Every day scored. Every hour timed. Think it's not real? Run anyone famous and check.</div>
+        <div class="c13-pw-body">${bodyText}</div>
         <div class="c13-tiers">${cards}</div>
         <div class="c13-pw-note" id="c13PaywallNote"></div>
         <div class="c13-pw-fine">Subscriptions renew automatically until canceled. Founding prices apply while founding spots last.</div>
