@@ -376,32 +376,12 @@ function exitEditMode() {
   document.getElementById('cancelEditBtn').style.display = 'none';
 }
 
-function init() {
-  attachDateMask(document.getElementById('newEntryDate'));
-
-  document.getElementById('addEntryBtn').addEventListener('click', () => {
-    const nameInput = document.getElementById('newEntryName');
-    const dateInput = document.getElementById('newEntryDate');
-    const timeInput = document.getElementById('newEntryTime');
-    const iso = displayToISO(dateInput.value);
-    if (!iso) {
-      alert('Please enter a valid date (MM/DD/YYYY).');
-      return;
-    }
-    if (editingEntryId) {
-      updateEntry(editingEntryId, nameInput.value, iso, timeInput.value);
-    } else {
-      addEntry(nameInput.value, iso, timeInput.value);
-    }
-    exitEditMode();
-  });
-
-  document.getElementById('cancelEditBtn').addEventListener('click', () => exitEditMode());
-
-  document.getElementById('newEntryName').addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') document.getElementById('addEntryBtn').click();
-  });
-
+// The viewing-side listeners (entry rows, popups, closes) - shared between
+// the entitled init path and the locked path, since existing entries stay
+// readable either way (a lapsed subscriber keeps SEEING their data, they
+// just can't add). Edit/delete taps inside rows still work; they only
+// touch what's already there.
+function wireInitStatic() {
   document.getElementById('entriesContainer').addEventListener('click', (e) => {
     // Year-only rows keep their own inline delete/"Add full date" actions.
     const deleteBtn = e.target.closest('button[data-entry]');
@@ -441,6 +421,52 @@ function init() {
   document.getElementById('compareMiniOverlay').addEventListener('click', (e) => {
     if (e.target.id === 'compareMiniOverlay') closeCompareMini();
   });
+}
+
+function init() {
+  // Database is fully paid (locked gating spec: zero free entries) - the
+  // Add Birthday form (bulk upload included) swaps for the lock tease.
+  // Existing entries still render below it, so a lapsed subscriber can
+  // see their data - they just can't add to it.
+  if (!c13Entitled()) {
+    const box = document.getElementById('addEntryBox');
+    if (box) {
+      box.innerHTML = c13LockHtml(
+        'The Database',
+        'Your whole circle, decoded. Add family, friends, anyone — every reading, every compatibility, saved forever.',
+        ''
+      );
+    }
+    wireInitStatic();
+    return;
+  }
+
+  attachDateMask(document.getElementById('newEntryDate'));
+
+  document.getElementById('addEntryBtn').addEventListener('click', () => {
+    const nameInput = document.getElementById('newEntryName');
+    const dateInput = document.getElementById('newEntryDate');
+    const timeInput = document.getElementById('newEntryTime');
+    const iso = displayToISO(dateInput.value);
+    if (!iso) {
+      alert('Please enter a valid date (MM/DD/YYYY).');
+      return;
+    }
+    if (editingEntryId) {
+      updateEntry(editingEntryId, nameInput.value, iso, timeInput.value);
+    } else {
+      addEntry(nameInput.value, iso, timeInput.value);
+    }
+    exitEditMode();
+  });
+
+  document.getElementById('cancelEditBtn').addEventListener('click', () => exitEditMode());
+
+  document.getElementById('newEntryName').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') document.getElementById('addEntryBtn').click();
+  });
+
+  wireInitStatic();
 
   document.getElementById('bulkUploadBtn').addEventListener('click', () => {
     openBulkUploadModal((rows) => {

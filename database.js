@@ -41,16 +41,36 @@ function render() {
   });
 }
 
-document.getElementById('addCategoryBtn').addEventListener('click', () => {
-  const input = document.getElementById('newCategoryName');
-  addCategory(input.value);
-  input.value = '';
-  input.focus();
-});
+// Database is fully paid (locked gating spec: zero free entries) - the
+// whole New Category form swaps for the lock tease when not entitled.
+if (!c13Entitled()) {
+  const box = document.querySelector('.add-category-box');
+  if (box) {
+    box.innerHTML = c13LockHtml(
+      'The Database',
+      'Your whole circle, decoded. Add family, friends, anyone — every reading, every compatibility, saved forever.',
+      ''
+    );
+  }
+}
 
-document.getElementById('newCategoryName').addEventListener('keydown', (e) => {
-  if (e.key === 'Enter') document.getElementById('addCategoryBtn').click();
-});
+// Null-guarded: the lock swap above removes both elements for free users.
+const addCategoryBtnEl = document.getElementById('addCategoryBtn');
+if (addCategoryBtnEl) {
+  addCategoryBtnEl.addEventListener('click', () => {
+    const input = document.getElementById('newCategoryName');
+    addCategory(input.value);
+    input.value = '';
+    input.focus();
+  });
+}
+
+const newCategoryNameEl = document.getElementById('newCategoryName');
+if (newCategoryNameEl) {
+  newCategoryNameEl.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') addCategoryBtnEl.click();
+  });
+}
 
 document.getElementById('categoriesContainer').addEventListener('click', (e) => {
   const btn = e.target.closest('button[data-action="delete-category"]');

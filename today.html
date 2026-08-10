@@ -64,6 +64,7 @@
 <script src="big-store.js"></script>
 <script src="db-core.js?v=6"></script>
 <script src="firebase-loader.js"></script>
+<script src="entitlements.js?v=1"></script>
 <script src="imprint-alignment.js?v=7"></script>
 <script src="compat-render.js?v=13"></script>
 <script src="bottombar.js?v=8"></script>
@@ -182,6 +183,15 @@
         .sort(function (a, b) { return b.score - a.score; });
       finHour = findBestFinancialHour(hoursTable);
     } catch (e) {}
+  }
+  // The Hours are Code13+ (locked gating spec: visible/teased, not
+  // hidden). Nulling the tables here makes every downstream block - the
+  // heat strip, the NOW card, the hour-carrier line, the tap popup, the
+  // heartbeat - skip naturally; hoursLocked swaps in the tease instead.
+  var hoursLocked = false;
+  if (rankedHours && !(window.c13Entitled && c13Entitled())) {
+    hoursLocked = true;
+    hoursTable = null; rankedHours = null; finHour = null;
   }
 
   /* --------------------------------------------------------- the altar --- */
@@ -549,6 +559,12 @@
       '<span class="lg-bad">● enemy</span>' +
       (finHour ? '<span class="l-fin">● financial</span>' : '') + '</div>' +
       '<div class="gk-hr-hint">tap for the full day →</div>';
+  } else if (hoursLocked) {
+    dayHtml += c13LockHtml(
+      'The Hours',
+      'Your best hour of every day — hour by hour, green to red, financial hour marked.',
+      "Today's number is free. The hours that carry it are not."
+    );
   } else {
     dayHtml += '<div class="gk-count">' + (me
       ? 'Add your birth time in My Profile to unlock the hours.'

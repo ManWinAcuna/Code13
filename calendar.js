@@ -114,15 +114,38 @@ function initMonthYearSelects() {
   for (let y = CAL_YEAR_MIN; y <= CAL_YEAR_MAX; y++) years.push(`<option value="${y}">${y}</option>`);
   yearSel.innerHTML = years.join('');
 
+  // Current + past months are free; the future is Code13+ (locked gating
+  // spec: nothing to monetize by hiding the past - the forward-looking
+  // forecast is the valuable thing). A blocked pick snaps back.
+  function guardFutureMonth(year, month) {
+    if (c13Entitled()) return true;
+    const now = new Date();
+    if (year > now.getFullYear() || (year === now.getFullYear() && month > now.getMonth())) {
+      c13OpenPaywall('calendar');
+      return false;
+    }
+    return true;
+  }
+
   monthSel.addEventListener('change', () => {
-    viewMonth = Number(monthSel.value);
+    const picked = Number(monthSel.value);
+    if (!guardFutureMonth(viewYear, picked)) {
+      monthSel.value = String(viewMonth);
+      return;
+    }
+    viewMonth = picked;
     renderHeader();
     renderGrid();
     renderRankList();
   });
 
   yearSel.addEventListener('change', () => {
-    viewYear = Number(yearSel.value);
+    const picked = Number(yearSel.value);
+    if (!guardFutureMonth(picked, viewMonth)) {
+      yearSel.value = String(viewYear);
+      return;
+    }
+    viewYear = picked;
     renderHeader();
     renderGrid();
     renderRankList();

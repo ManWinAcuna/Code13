@@ -62,7 +62,24 @@ function handleFamousInput(value) {
   famousDebounceTimer = setTimeout(() => fetchFamousSuggestions(q), 300);
 }
 
+// 130 free lookups, one-time lifetime cap (locked gating spec) - meter
+// line visible from first use, right under the search status.
+function refreshFamousMeterLine() {
+  let line = document.getElementById('famousMeterLine');
+  if (!line) {
+    line = document.createElement('div');
+    line.id = 'famousMeterLine';
+    document.getElementById('famousStatus').insertAdjacentElement('afterend', line);
+  }
+  line.innerHTML = c13MeterLineHtml('famous');
+}
+refreshFamousMeterLine();
+
 function selectFamousPerson(title) {
+  if (!c13Entitled() && c13MeterLeft('famous') <= 0) {
+    c13OpenPaywall('famous');
+    return;
+  }
   document.getElementById('famousSearch').value = title;
   document.getElementById('famousSuggestions').innerHTML = '';
   document.getElementById('famousSuggestions').classList.remove('open');
@@ -87,6 +104,9 @@ function selectFamousPerson(title) {
       render();
       const verb = FAMOUS_KIND_VERB[info.kind] || 'born';
       setFamousStatus(`✓ ${title} — ${verb} ${info.date}`, false);
+      // Only a lookup that actually resolved a date spends a free one.
+      c13MeterUse('famous');
+      refreshFamousMeterLine();
     })
     .catch(() => setFamousStatus('Lookup failed. Try again.', true));
 }

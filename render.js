@@ -394,15 +394,35 @@ if (pmReducedEl) {
   });
 }
 
+// Profile-only gating (locked spec): Pinnacles and the Personal Year
+// Roadmap are Code13+ on profile.html. Calculator and Famous Lookup load
+// this same file and stay fully free - the page check keeps them open.
+const c13ProfileGated = /profile/i.test(location.pathname)
+  && typeof c13Entitled === 'function' && !c13Entitled();
+
 const pyReducedEl = document.getElementById('pyReduced');
 if (pyReducedEl) {
   pyReducedEl.title = 'Click for Personal Year Roadmap';
   pyReducedEl.addEventListener('click', () => {
     if (!lastBirthDate) return;
+    if (c13ProfileGated) { c13OpenPaywall('roadmap'); return; }
     const roadmap = computeYearRoadmap(lastBirthDate);
     renderYearRoadmap(document.getElementById('compatModalBody'), roadmap);
     openModal();
   });
+}
+
+// The Pinnacles section swaps for the lock tease (values never even
+// render into the DOM for a free user - nothing to peek at in devtools).
+if (c13ProfileGated) {
+  const pinnaclesBox = document.querySelector('.pinnacles-collapsible');
+  if (pinnaclesBox) {
+    pinnaclesBox.outerHTML = c13LockHtml(
+      'Pinnacles',
+      'The four great chapters of your life — which numbers rule them, and exactly when each one turns.',
+      'Your core numbers are just the surface.'
+    );
+  }
 }
 
 const compatMeBox = document.getElementById('compatMeBox');

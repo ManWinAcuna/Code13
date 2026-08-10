@@ -269,6 +269,18 @@ document.addEventListener('click', (e) => {
   });
 });
 
+// 31 free checks, one-time lifetime cap (locked gating spec) - the meter
+// line is visible from the very first use, under the Calculate button.
+function refreshCompatMeterLine() {
+  let line = document.getElementById('compatMeterLine');
+  if (!line) {
+    line = document.createElement('div');
+    line.id = 'compatMeterLine';
+    document.getElementById('calculateBtn').insertAdjacentElement('afterend', line);
+  }
+  line.innerHTML = c13MeterLineHtml('compat');
+}
+
 document.querySelectorAll('.mode-card').forEach((card) => {
   card.addEventListener('click', () => {
     mode = card.dataset.mode;
@@ -278,6 +290,7 @@ document.querySelectorAll('.mode-card').forEach((card) => {
     compatResultsEl.innerHTML = '';
     personInputsEl.innerHTML = youInputHTML() + otherInputHTML();
     wireInputs();
+    refreshCompatMeterLine();
   });
 });
 
@@ -300,6 +313,10 @@ function parseDateInput(value) {
 }
 
 document.getElementById('calculateBtn').addEventListener('click', () => {
+  if (!c13Entitled() && c13MeterLeft('compat') <= 0) {
+    c13OpenPaywall('compat');
+    return;
+  }
   const dateAISO = displayToISO(document.querySelector('.person-date[data-person="A"]').value);
   if (!dateAISO) {
     alert('Please enter a valid date (MM/DD/YYYY) for your birthday.');
@@ -324,4 +341,8 @@ document.getElementById('calculateBtn').addEventListener('click', () => {
   const deep = computeDeepCompatibility(dateA, dateB, isPerson);
   renderCompatHero(compatResultsEl, result, nameA, nameB, { dateA, dateB, pillDateA: dateA, pillDateB: dateB, pillPersonMode: isPerson, deep });
   compatModalOverlayEl.classList.add('active');
+  // A successful render is what spends a free check - a validation error
+  // above never costs one.
+  c13MeterUse('compat');
+  refreshCompatMeterLine();
 });
