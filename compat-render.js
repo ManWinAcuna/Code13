@@ -260,7 +260,7 @@ function renderCompatHero(containerEl, r, nameA, nameB, opts) {
   // meters. Only the MECHANICS stay hidden: the formula strip with its
   // weight percentages, and the per-match +N points inside imprint rows.
   const pillLabel = deep
-    ? (deep.noImprintData ? '✨ No Imprint Data' : `✨ Imprint ${deep.imprintScore} — see what matched`)
+    ? (deep.noImprintData ? '✨ No Imprint Data' : `✨ Imprint ${deep.imprintScore} · see what matched`)
     : '✨ Check My Imprints';
   const revealLabelClosed = deep ? `▾ Today's Compatibility: ${r.finalScore}` : '▾ See full breakdown';
   const revealLabelOpen = deep ? `▴ Hide Today's Compatibility` : '▴ Hide full breakdown';
