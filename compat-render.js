@@ -255,15 +255,15 @@ function renderCompatHero(containerEl, r, nameA, nameB, opts) {
       </div>
     </div>`;
 
-  // Code13: no ingredient numbers in the labels - the deep score is the
-  // only number this surface leads with (the per-system meters inside the
-  // reveal stay, per the owner's call - systems' scores are content, the
-  // blend's ingredients/weights are method).
+  // Code13 (corrected 2026-08-10): scores at every level are fine to show -
+  // the final %, Today's Compatibility, the Imprint score, per-system
+  // meters. Only the MECHANICS stay hidden: the formula strip with its
+  // weight percentages, and the per-match +N points inside imprint rows.
   const pillLabel = deep
-    ? (deep.noImprintData ? '✨ No Imprint Data' : '✨ See what matched')
+    ? (deep.noImprintData ? '✨ No Imprint Data' : `✨ Imprint ${deep.imprintScore} — see what matched`)
     : '✨ Check My Imprints';
-  const revealLabelClosed = '▾ See full breakdown';
-  const revealLabelOpen = '▴ Hide full breakdown';
+  const revealLabelClosed = deep ? `▾ Today's Compatibility: ${r.finalScore}` : '▾ See full breakdown';
+  const revealLabelOpen = deep ? `▴ Hide Today's Compatibility` : '▴ Hide full breakdown';
 
   containerEl.innerHTML = `
     <div class="compat-hero${opts.compact ? ' compact' : ''}" style="--tier-c:${COMPAT_TIER_COLOR[tier]}; --tier-glow:${COMPAT_TIER_GLOW[tier]}">
@@ -337,14 +337,11 @@ function imprintPossessive(name) {
   return IMPRINT_POSSESSIVE[name] || `${name}'s`;
 }
 
-// Code13 (2026-08-10): imprint results speak in tier words, not numbers -
-// the per-domain/per-direction scores and per-match "+N" points are the
-// scoring internals the public app keeps to itself. Tier classes still
-// drive the colors, so the read is just as immediate.
-const IMPRINT_TIER_WORDS = { good: 'Strong', mid: 'Mild', bad: 'Faint' };
-function imprintTierWord(tier) {
-  return IMPRINT_TIER_WORDS[tier] || 'Mild';
-}
+// Code13 (corrected 2026-08-10): imprint scores stay VISIBLE - the owner's
+// rule is narrower than first cut: percentages at every level (final,
+// per-category, imprint, domains) are fine; only the mechanics of how they
+// combine are hidden (the formula strip's weight %s, and the per-match
+// "+N" points / inline compatScores inside the match rows).
 
 // m.domains (2026-08-07) is an array of "emoji Label" strings tagging which
 // life area(s) that theme number belongs to - empty for the domain-agnostic
@@ -361,7 +358,7 @@ function imprintAlignmentResultHtml(result, personName, candidateName) {
   return `
     <div class="imprint-result">
       <div class="imprint-result-head">
-        <div class="imprint-result-score word ${result.tier}">${imprintTierWord(result.tier)}</div>
+        <div class="imprint-result-score ${result.tier}">${result.score}</div>
         <div class="imprint-result-label">${escapeHtml(imprintPossessive(personName))} imprints <i>&times;</i> ${escapeHtml(candidateName)}</div>
       </div>
       <button type="button" class="imprint-reveal-btn" data-imprint-reveal>▾ See what matched</button>
@@ -399,7 +396,7 @@ function imprintPersonAlignmentResultHtml(result, nameA, nameB) {
   const domainKeys = Object.keys(result.domains);
   const chips = domainKeys.map((key) => {
     const dm = result.domains[key];
-    return `<button type="button" class="imprint-domain-chip ${dm.tier}" data-imprint-domain="${key}">${dm.emoji} ${escapeHtml(dm.label)}</button>`;
+    return `<button type="button" class="imprint-domain-chip ${dm.tier}" data-imprint-domain="${key}">${dm.emoji} ${escapeHtml(dm.label)} <b>${dm.score}</b></button>`;
   }).join('');
   const panels = domainKeys.map((key) => {
     const dm = result.domains[key];
@@ -415,7 +412,7 @@ function imprintPersonAlignmentResultHtml(result, nameA, nameB) {
   return `
     <div class="imprint-result imprint-result-domains">
       <div class="imprint-result-head">
-        <div class="imprint-result-score word ${result.tier}">${imprintTierWord(result.tier)}</div>
+        <div class="imprint-result-score ${result.tier}">${result.score}</div>
         <div class="imprint-result-label">${escapeHtml(nameA)} <i>&times;</i> ${escapeHtml(nameB)} Imprints</div>
       </div>
       <div class="imprint-domain-grid">${chips}</div>
