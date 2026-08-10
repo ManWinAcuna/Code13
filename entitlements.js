@@ -51,7 +51,12 @@
     if (window.c13Entitled()) return '';
     const m = METERS[kind];
     const left = window.c13MeterLeft(kind);
-    return `<div class="c13-meter-line${left <= 5 ? ' low' : ''}">${left} ${m.noun} left · <button type="button" class="c13-meter-plus" onclick="c13OpenPaywall('${kind}')">unlimited with Code13+</button></div>`;
+    // Full-send at the low end: the cap is real, so the copy says what
+    // running out actually means.
+    if (left <= 5) {
+      return `<div class="c13-meter-line low">${left} ${m.noun} left. After that, you're back to guessing. <button type="button" class="c13-meter-plus" onclick="c13OpenPaywall('${kind}')">Code13+</button></div>`;
+    }
+    return `<div class="c13-meter-line">${left} ${m.noun} left · <button type="button" class="c13-meter-plus" onclick="c13OpenPaywall('${kind}')">unlimited with Code13+</button></div>`;
   };
 
   /* ---------------- Lock tease cards ----------------
@@ -86,14 +91,17 @@
     {
       id: 'lifetime', badge: 'Founding · First 130', badgeGold: true, name: 'Lifetime',
       list: '$310', offer: '$130', per: ' once',
-      note: 'Yours forever. No renewals.', cta: 'Claim Founding Spot',
+      // Founder numbers are a committed product feature (Boost13 copy
+      // spec): each of the 130 gets Founder #N on their profile forever.
+      // Assignment needs the real backend - the promise ships now.
+      note: 'Yours forever. Your founder number, on your profile, permanent.', cta: 'Claim Founding Spot',
     },
   ];
 
   window.c13Buy = function (tierId) {
     const note = document.getElementById('c13PaywallNote');
     if (note) {
-      note.textContent = 'Purchases open when Code13 reaches the Play Store — founding pricing is locked in for launch.';
+      note.textContent = 'Purchases open when Code13 reaches the Play Store. Founding pricing is locked in for launch.';
       note.classList.add('on');
     }
   };
@@ -120,8 +128,9 @@
       <div class="c13-pw-inner">
         <button type="button" class="c13-pw-close" onclick="c13ClosePaywall()" title="Close">&times;</button>
         <div class="c13-pw-head">Unlock Your Full Code</div>
-        <div class="c13-pw-sub">Founding launch offer — first 130 members</div>
-        <div class="c13-pw-body">Every number, every hour, every reading. The complete picture of you — and everyone you add.</div>
+        <div class="c13-pw-sub">Founding launch offer · first 130 members</div>
+        <div class="c13-pw-sig">From Guessing to Planning</div>
+        <div class="c13-pw-body">Every person read. Every day scored. Every hour timed. Think it's not real? Run anyone famous and check.</div>
         <div class="c13-tiers">${cards}</div>
         <div class="c13-pw-note" id="c13PaywallNote"></div>
         <div class="c13-pw-fine">Subscriptions renew automatically until canceled. Founding prices apply while founding spots last.</div>
@@ -142,6 +151,8 @@
       color: var(--yellow, #f5c542); letter-spacing: .02em; }
     .c13-pw-sub { margin-top: 5px; font-size: 12px; letter-spacing: .08em; text-transform: uppercase;
       color: var(--acc-text, #e8b04b); }
+    .c13-pw-sig { margin-top: 12px; font-size: 15px; font-style: italic; color: var(--text, #dfe7f3);
+      letter-spacing: .03em; }
     .c13-pw-body { margin: 10px auto 16px; max-width: 320px; font-size: 13.5px; line-height: 1.5;
       color: var(--text, #dfe7f3); }
     .c13-tiers { display: flex; flex-direction: column; gap: 10px; }

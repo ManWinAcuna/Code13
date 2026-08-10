@@ -48,8 +48,8 @@ if (!c13Entitled()) {
   if (box) {
     box.innerHTML = c13LockHtml(
       'The Database',
-      'Your whole circle, decoded. Add family, friends, anyone — every reading, every compatibility, saved forever.',
-      ''
+      'Your mom, your boss, the name that just texted you. Everyone runs on a number they have never seen.',
+      'You have read yourself. Now read the room.'
     );
   }
 }

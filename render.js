@@ -414,13 +414,29 @@ if (pyReducedEl) {
 
 // The Pinnacles section swaps for the lock tease (values never even
 // render into the DOM for a free user - nothing to peek at in devtools).
+// When a profile birthdate exists, the why-line is personalized: the
+// reader's real current chapter, veiled (Boost13 copy spec - their own
+// data sells harder than any sentence). The flip age stays behind the
+// paywall.
 if (c13ProfileGated) {
   const pinnaclesBox = document.querySelector('.pinnacles-collapsible');
   if (pinnaclesBox) {
+    let whyLine = 'Your core numbers say who you are. Pinnacles say when.';
+    try {
+      const prof = loadProfile();
+      if (prof && prof.date) {
+        const [py, pm, pd] = prof.date.split('-').map(Number);
+        const bd = new Date();
+        bd.setFullYear(py, pm - 1, pd);
+        bd.setHours(0, 0, 0, 0);
+        const chapter = computeYearRoadmapRange(bd).pinnacleIndex;
+        whyLine = 'You are in chapter ' + chapter + ' of 4 right now. The age it flips is one tap away.';
+      }
+    } catch (e) {}
     pinnaclesBox.outerHTML = c13LockHtml(
       'Pinnacles',
-      'The four great chapters of your life — which numbers rule them, and exactly when each one turns.',
-      'Your core numbers are just the surface.'
+      'Your life has four chapters, each with different rules. Playing chapter 2 moves in a chapter 3 year is how people lose whole years.',
+      whyLine
     );
   }
 }

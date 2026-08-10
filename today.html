@@ -64,7 +64,7 @@
 <script src="big-store.js"></script>
 <script src="db-core.js?v=6"></script>
 <script src="firebase-loader.js"></script>
-<script src="entitlements.js?v=1"></script>
+<script src="entitlements.js?v=2"></script>
 <script src="imprint-alignment.js?v=7"></script>
 <script src="compat-render.js?v=13"></script>
 <script src="bottombar.js?v=8"></script>
@@ -188,9 +188,14 @@
   // hidden). Nulling the tables here makes every downstream block - the
   // heat strip, the NOW card, the hour-carrier line, the tap popup, the
   // heartbeat - skip naturally; hoursLocked swaps in the tease instead.
-  var hoursLocked = false;
+  // lockedHourHint is captured BEFORE the null: the tease shows the
+  // reader's real best hour, veiled to its leading number (Boost13 copy
+  // spec: their own data sells harder than any sentence).
+  var hoursLocked = false, lockedHourHint = '';
   if (rankedHours && !(window.c13Entitled && c13Entitled())) {
     hoursLocked = true;
+    var hintMatch = rankedHours[0].row.label.match(/^\d+/);
+    lockedHourHint = hintMatch ? hintMatch[0] : '';
     hoursTable = null; rankedHours = null; finHour = null;
   }
 
@@ -562,8 +567,10 @@
   } else if (hoursLocked) {
     dayHtml += c13LockHtml(
       'The Hours',
-      'Your best hour of every day — hour by hour, green to red, financial hour marked.',
-      "Today's number is free. The hours that carry it are not."
+      'The raise, the trade, the text sitting in your drafts. Right move at the wrong hour and it still goes sideways.',
+      lockedHourHint
+        ? 'Your best hour today starts with a ' + lockedHourHint + '. The rest is one tap away.'
+        : "You know today's number. You don't know when it peaks."
     );
   } else {
     dayHtml += '<div class="gk-count">' + (me
