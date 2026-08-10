@@ -112,26 +112,24 @@
   };
 
   // Each lock opens the paywall with its own pitch (owner's call: no one
-  // generic body for every popup). The skeleton - headline, founding
-  // line, signature, tiers - stays constant; the body sells the specific
-  // thing they just reached for. The famous context skips the proof line
-  // since it IS the proof engine.
-  const PROOF_LINE = " Think it's not real? Run anyone famous and check.";
+  // generic body, and no shared line glued onto every context - the
+  // first version's repeated proof sentence read as repetitive and
+  // didn't fit half of them). Each body is its own emotional scene:
+  // the reader's specific moment of flying blind, unresolved.
   const CONTEXT_COPY = {
-    hours: 'You saw the first number of your best hour. The full map is every hour of every day, scored green to red, your financial hour marked.',
-    database: 'One profile was you. The Database is everyone else: family, friends, the new name in your phone, saved and readable forever.',
-    pinnacles: 'Four chapters, their ruling numbers, and the exact ages they flip. Know the chapter before you play it.',
-    roadmap: 'Every year of your chapter, scored before it arrives. Know which years to push and which years to protect.',
-    calendar: 'Every month ahead, scored day by day before it starts. See the storm days and the green days before you book anything that matters.',
-    compat: 'Unlimited readings. People, companies, cities, dates. Never talk yourself out of checking again.',
-    famous: 'Unlimited lookups. Presidents, champions, your favorite artist, your ex. Run anyone, forever.',
-    generic: 'Every person read. Every day scored. Every hour timed.',
+    hours: "Somewhere in today is an hour where you land everything. You'll probably spend it on nothing. The call you're dreading? You'll make it in a red hour and never know. The map exists.",
+    database: "The same fight, with the same person, for the same reason. It has a number, and it's been there the whole time. Read the people you love once and stop being blindsided by them.",
+    pinnacles: "There was a year your whole life shifted and nobody could tell you why. That was a chapter turning. You're standing in one right now, and it has an end date you've never seen.",
+    roadmap: "Some of your next ten years are built for the big swing. Others will take everything you pour in and hand nothing back. They're already scored. Right now you're planning them blind.",
+    calendar: "A wedding date. A launch day. A flight. You'll pick them the way everyone does: blind. Next month is already scored, day by day. Look before, or find out after.",
+    compat: "The moment you start counting readings, you start skipping the ones that matter. The new job, the new name, the thing you're about to sign. Everything you say yes to has a number. Check it while it can still change your answer.",
+    famous: "Run the people whose lives you already know. Watch the numbers call what happened to them, decade by decade. Then remember: you have the same numbers. Yours are still unfolding.",
+    generic: "You've been living these numbers your whole life without ever reading them. Every person, every day, every hour, already scored. That ends when you unlock it.",
   };
 
   window.c13OpenPaywall = function (context) {
     if (document.getElementById('c13Paywall')) return;
-    const pitch = CONTEXT_COPY[context] || CONTEXT_COPY.generic;
-    const bodyText = context === 'famous' ? pitch : pitch + PROOF_LINE;
+    const bodyText = CONTEXT_COPY[context] || CONTEXT_COPY.generic;
     const cards = TIERS.map((t) => `
       <div class="c13-tier${t.badgeHot ? ' hot' : ''}${t.badgeGold ? ' gold' : ''}">
         <div class="c13-tier-badge">${t.badge}</div>
