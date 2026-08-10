@@ -1,0 +1,259 @@
+// Small floating sign-in widget + modal, injected on every page. Signing in
+// is entirely optional - the app works purely on localStorage either way.
+// When signed in, db-core.js's saveX() functions also push to Firestore.
+// Right after an explicit sign-in/sign-up, this pulls the cloud copy down
+// and reloads so the page reflects it immediately (the moment a fresh
+// install/device/reinstalled home-screen icon needs it most). On a plain
+// app relaunch where Firebase just restores an already-signed-in session,
+// it instead pulls quietly in the background with no reload - forcing a
+// reload there just flashed/glitched a page that was already showing
+// perfectly good local data.
+(function () {
+  // A never-signed-in browser shows a static placeholder pill instead of
+  // loading this file at all (see firebase-loader.js) - clicking it loads
+  // Firebase on demand and lands here. Swap that placeholder out for the
+  // real widget rather than appending a second one.
+  const placeholder = document.getElementById('authWidgetPlaceholder');
+  if (placeholder) placeholder.remove();
+
+  let explicitAuthAction = false;
+  const widget = document.createElement('div');
+  widget.className = 'auth-widget';
+  widget.id = 'authWidget';
+  widget.innerHTML = '<span id="authWidgetStatus">Sign In</span>';
+  document.body.appendChild(widget);
+
+  document.body.insertAdjacentHTML('beforeend', `
+    <div class="modal-overlay" id="authModalOverlay">
+      <div class="modal-box modal-box-narrow">
+        <button class="modal-close" id="authModalClose" title="Close">&times;</button>
+        <div class="box-label" id="authModalTitle">Sign In</div>
+        <div class="auth-modal-form">
+          <input type="email" id="authEmail" placeholder="Email" autocomplete="email">
+          <input type="password" id="authPassword" placeholder="Password" autocomplete="current-password">
+          <div class="auth-modal-error" id="authError"></div>
+          <button class="btn btn-large" id="authSubmitBtn">Sign In</button>
+          <button class="btn-link" id="authToggleModeBtn">Need an account? Sign up</button>
+        </div>
+      </div>
+    </div>
+    <div class="auth-sync-overlay" id="authSyncOverlay">
+      <div class="auth-sync-box">☁️ Syncing your data&hellip;</div>
+    </div>
+  `);
+
+  let authMode = 'signin';
+
+  function openAuthModal() {
+    document.getElementById('authError').textContent = '';
+    document.getElementById('authModalOverlay').classList.add('active');
+  }
+
+  function closeAuthModal() {
+    document.getElementById('authModalOverlay').classList.remove('active');
+    document.getElementById('authEmail').value = '';
+    document.getElementById('authPassword').value = '';
+    document.getElementById('authError').textContent = '';
+  }
+
+  function setAuthMode(mode) {
+    authMode = mode;
+    document.getElementById('authModalTitle').textContent = mode === 'signup' ? 'Create Account' : 'Sign In';
+    document.getElementById('authSubmitBtn').textContent = mode === 'signup' ? 'Sign Up' : 'Sign In';
+    document.getElementById('authToggleModeBtn').textContent = mode === 'signup'
+      ? 'Already have an account? Sign in'
+      : 'Need an account? Sign up';
+    document.getElementById('authError').textContent = '';
+  }
+
+  widget.addEventListener('click', () => {
+    const user = firebase.auth().currentUser;
+    if (user) {
+      if (confirm(`Signed in as ${user.email}. Sign out?`)) firebase.auth().signOut();
+    } else {
+      setAuthMode('signin');
+      openAuthModal();
+    }
+  });
+
+  document.getElementById('authModalClose').addEventListener('click', closeAuthModal);
+  document.getElementById('authModalOverlay').addEventListener('click', (e) => {
+    if (e.target.id === 'authModalOverlay') closeAuthModal();
+  });
+  document.getElementById('authToggleModeBtn').addEventListener('click', () => {
+    setAuthMode(authMode === 'signin' ? 'signup' : 'signin');
+  });
+
+  const AUTH_ERROR_MESSAGES = {
+    'auth/invalid-email': 'That email address looks invalid.',
+    'auth/user-not-found': 'No account with that email. Try signing up instead.',
+    'auth/wrong-password': 'Incorrect password.',
+    'auth/invalid-credential': 'Incorrect email or password.',
+    'auth/email-already-in-use': 'An account already exists with that email. Try signing in instead.',
+    'auth/weak-password': 'Password should be at least 6 characters.',
+  };
+
+  function showAuthError(err) {
+    document.getElementById('authError').textContent = AUTH_ERROR_MESSAGES[err.code] || err.message || 'Something went wrong.';
+  }
+
+  document.getElementById('authSubmitBtn').addEventListener('click', () => {
+    const email = document.getElementById('authEmail').value.trim();
+    const password = document.getElementById('authPassword').value;
+    if (!email || !password) {
+      document.getElementById('authError').textContent = 'Enter both an email and a password.';
+      return;
+    }
+
+    explicitAuthAction = true;
+    const submitBtn = document.getElementById('authSubmitBtn');
+    submitBtn.disabled = true;
+    document.getElementById('authError').textContent = '';
+
+    let settled = false;
+    function finishWithError(err) {
+      if (settled) return;
+      settled = true;
+      explicitAuthAction = false;
+      submitBtn.disabled = false;
+      showAuthError(err);
+    }
+
+    let call;
+    try {
+      call = authMode === 'signup'
+        ? firebase.auth().createUserWithEmailAndPassword(email, password).then(() => cloudPushAll())
+        : firebase.auth().signInWithEmailAndPassword(email, password);
+    } catch (err) {
+      // A broken/evicted local session (seen on iOS after storage pressure)
+      // can make firebase.auth() throw synchronously instead of rejecting a
+      // promise - without this, that exception would just abort the click
+      // handler with no visible feedback at all.
+      finishWithError(err);
+      return;
+    }
+
+    call.then(() => {
+      if (settled) return;
+      settled = true;
+      submitBtn.disabled = false;
+      closeAuthModal();
+    }).catch(finishWithError);
+
+    // The same broken persistence layer can also leave this promise
+    // permanently pending instead of throwing - neither resolving nor
+    // rejecting, so the button would otherwise sit there forever with no
+    // feedback ("nothing happens"). Time out and say so instead.
+    setTimeout(() => {
+      finishWithError({ message: "This is taking too long — your device's saved sign-in data may be stuck. Try closing and reopening the app, then sign in again." });
+    }, 15000);
+  });
+
+  function updateWidgetUI(user) {
+    document.getElementById('authWidgetStatus').textContent = user ? `☁️ ${user.email}` : 'Sign In';
+  }
+
+  // Caps how long the post-sign-in sync can block the reload - a Firestore
+  // fetch over a weak connection can take much longer than expected, and
+  // silently waiting on it left the user staring at an already-rendered
+  // page for up to a minute before an unexplained reload. Now they see a
+  // visible "Syncing" overlay the whole time, capped at 8s either way.
+  function withTimeout(promise, ms) {
+    return Promise.race([promise, new Promise((resolve) => setTimeout(resolve, ms))]);
+  }
+
+  // Every tab switch is a full page load, and quietly re-pulling the whole
+  // Firestore doc on all of them (network fetch + rewriting every
+  // localStorage key) added lag to each navigation. Once per 5 minutes per
+  // session is plenty - saveX() pushes keep the cloud current in between.
+  const CLOUD_PULL_THROTTLE_MS = 5 * 60 * 1000;
+  const CLOUD_PULL_STAMP_KEY = 'numerology_last_cloud_pull';
+
+  function stampCloudPull() {
+    try { sessionStorage.setItem(CLOUD_PULL_STAMP_KEY, String(Date.now())); } catch (e) { /* ignore */ }
+  }
+
+  function cloudPullIsDue() {
+    try {
+      return Date.now() - Number(sessionStorage.getItem(CLOUD_PULL_STAMP_KEY) || 0) > CLOUD_PULL_THROTTLE_MS;
+    } catch (e) {
+      return true;
+    }
+  }
+
+  // Marks this browser as having signed in at least once, so
+  // firebase-loader.js auto-loads Firebase on future page loads instead of
+  // waiting for another explicit click - a returning signed-in user
+  // shouldn't have to re-click "Sign In" on every single page.
+  const EVER_SIGNED_IN_KEY = 'numerology_ever_signed_in';
+
+  firebase.auth().onAuthStateChanged((user) => {
+    updateWidgetUI(user);
+    if (user) {
+      try { localStorage.setItem(EVER_SIGNED_IN_KEY, '1'); } catch (e) { /* ignore */ }
+      // Push anything saved while the lazily-loaded SDK was still on its
+      // way. cloudPullAll() (db-core.js) waits for these in-flight writes
+      // before it reads, so the pull below can't win a race against them
+      // and resurrect a stale cloud snapshot over local edits that just
+      // hadn't reached Firestore yet.
+      if (window.__pendingCloudPushKeys && window.__pendingCloudPushKeys.size) {
+        window.__pendingCloudPushKeys.forEach((k) => cloudPushKey(k));
+        window.__pendingCloudPushKeys.clear();
+      }
+      if (explicitAuthAction) {
+        explicitAuthAction = false;
+        document.getElementById('authSyncOverlay').classList.add('active');
+        withTimeout(cloudPullAll(), 8000).then(() => {
+          stampCloudPull();
+          if (window.__resolveFirstCloudPullDone) window.__resolveFirstCloudPullDone();
+          document.getElementById('authSyncOverlay').classList.remove('active');
+          if (typeof window.__refreshAfterCloudSync === 'function') {
+            window.__refreshAfterCloudSync();
+          } else {
+            location.reload();
+          }
+        });
+      } else if (cloudPullIsDue()) {
+        stampCloudPull();
+        // Quiet by default (no reload) so a page that's already showing
+        // perfectly good local data doesn't flash on every relaunch - but
+        // if this device's copy had actually drifted from the cloud (a
+        // stale local install, an edit made on another device, storage
+        // that got partially reset), silently updating localStorage isn't
+        // enough: the page already rendered from the old data and nothing
+        // else would ever tell it to look again. So when the pull reports
+        // a real change, refresh - via the page's own hook if it defines
+        // one (see profile.js), else a plain reload.
+        cloudPullAll().then((changed) => {
+          if (window.__resolveFirstCloudPullDone) window.__resolveFirstCloudPullDone();
+          if (!changed) return;
+          if (typeof window.__refreshAfterCloudSync === 'function') window.__refreshAfterCloudSync();
+          else location.reload();
+        });
+      } else if (window.__resolveFirstCloudPullDone) {
+        // Throttle window hasn't elapsed (another page pulled recently this
+        // session) - no pull is coming from this page load, so anything
+        // waiting on __firstCloudPullDone (emax.js's seed guard) should stop
+        // waiting rather than sit until the 10s safety timeout.
+        window.__resolveFirstCloudPullDone();
+      }
+    } else if (window.__resolveFirstCloudPullDone) {
+      // Resolved auth state with no signed-in user - there is no cloud
+      // data to pull, so nothing should keep waiting on this.
+      window.__resolveFirstCloudPullDone();
+    }
+  }, (err) => {
+    // Firebase's listener contract supports this second callback for
+    // errors reading persisted auth state (e.g. a broken/evicted iOS
+    // IndexedDB session) - without it those failures were invisible.
+    if (window.__resolveFirstCloudPullDone) window.__resolveFirstCloudPullDone();
+    console.warn('Auth state listener error:', err);
+  });
+
+  // The click that triggered loading Firebase in the first place happened
+  // on the now-removed placeholder, before this modal existed - honor it.
+  if (window.__pendingAuthWidgetClick) {
+    window.__pendingAuthWidgetClick = false;
+    openAuthModal();
+  }
+})();

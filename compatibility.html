@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#000000">
+<style>html{background:#000}</style>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="logo.svg" type="image/svg+xml">
+<link rel="icon" href="icon-192.png" sizes="192x192">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<title>Compatibility Calculator</title>
+<link rel="stylesheet" href="style.css?v=3">
+<link rel="stylesheet" href="godlike.css?v=39">
+</head>
+<body>
+<div class="page">
+
+  <nav class="topnav">
+    <a href="stable.html" class="nav-link">🐎 Stable</a>
+    <a href="profile.html" class="nav-link">My Profile</a>
+    <a href="sports-betting.html" class="nav-link">Sports Betting</a>
+    <a href="stocks.html" class="nav-link">Stocks</a>
+    <a href="emax.html" class="nav-link">EMAX</a>
+    <a href="calculator.html" class="nav-link">Calculator</a>
+    <a href="famous.html" class="nav-link">Famous Lookup</a>
+    <a href="calendar.html" class="nav-link">Calendar</a>
+    <a href="astrology.html" class="nav-link">Astrology</a>
+    <a href="database.html" class="nav-link">Database</a>
+    <a href="compatibility.html" class="nav-link active">Compatibility Calculator</a>
+  </nav>
+  <script src="nav-scroll.js"></script>
+  <script src="bottombar.js?v=8"></script>
+  <script src="update-check.js?v=4"></script>
+
+
+  <div class="compat-mode-select" id="modeSelect">
+    <button class="mode-card" data-mode="today">
+      <div class="mode-icon">📅</div>
+      <div class="mode-title">Compatibility with Today</div>
+      <div class="mode-desc">See how a birthday lines up with today's date.</div>
+    </button>
+    <button class="mode-card" data-mode="date">
+      <div class="mode-icon">🔗</div>
+      <div class="mode-title">Compatibility with Another Date</div>
+      <div class="mode-desc">Compare two birthdays against each other.</div>
+    </button>
+    <button class="mode-card" data-mode="imprint">
+      <div class="mode-icon">🎯</div>
+      <div class="mode-title">Imprint Alignment</div>
+      <div class="mode-desc">See if a date resonates with someone's first imprints.</div>
+    </button>
+  </div>
+
+  <div class="compat-form" id="compatForm">
+    <a href="#" class="back-link" id="backToModes">&larr; Change mode</a>
+
+    <div class="person-inputs" id="personInputs"></div>
+
+    <button class="btn btn-large" id="calculateBtn">Calculate Compatibility</button>
+  </div>
+
+</div>
+
+<!-- Deliberately OUTSIDE .page - see category.html for why (scroll-viewport.js
+     wraps only body > .page into the app's real scrolling container; a
+     position:fixed popup left nested inside it can visually lag behind or
+     half-follow the background's own scroll on iOS Safari). -->
+<div class="modal-overlay" id="compatModalOverlay">
+  <div class="modal-box">
+    <button class="modal-close" id="compatModalClose" title="Close">&times;</button>
+    <div id="compatResults"></div>
+  </div>
+</div>
+
+<script src="scroll-viewport.js"></script>
+<script src="astronomy.browser.min.js"></script>
+<script src="astro-engine.js"></script>
+<script src="numerology.js"></script>
+<script src="compat-data.js"></script>
+<script src="overrides-engine.js?v=2"></script>
+<script src="compat-engine.js?v=4"></script>
+<script src="big-store.js"></script>
+<script src="db-core.js?v=6"></script>
+<script src="firebase-loader.js"></script>
+<script src="imprint-alignment.js?v=7"></script>
+<script src="deep-compat.js?v=1"></script>
+<script src="compat-render.js?v=11"></script>
+<script src="compatibility.js?v=7"></script>
+<script src="godlike.js?v=2"></script>
+</body>
+</html>

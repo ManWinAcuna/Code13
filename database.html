@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#000000">
+<style>html{background:#000}</style>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="logo.svg" type="image/svg+xml">
+<link rel="icon" href="icon-192.png" sizes="192x192">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<title>Birthday Database</title>
+<link rel="stylesheet" href="style.css?v=3">
+<link rel="stylesheet" href="godlike.css?v=39">
+</head>
+<body>
+<div class="page">
+
+  <nav class="topnav">
+    <a href="stable.html" class="nav-link">🐎 Stable</a>
+    <a href="profile.html" class="nav-link">My Profile</a>
+    <a href="sports-betting.html" class="nav-link">Sports Betting</a>
+    <a href="stocks.html" class="nav-link">Stocks</a>
+    <a href="emax.html" class="nav-link">EMAX</a>
+    <a href="calculator.html" class="nav-link">Calculator</a>
+    <a href="famous.html" class="nav-link">Famous Lookup</a>
+    <a href="calendar.html" class="nav-link">Calendar</a>
+    <a href="astrology.html" class="nav-link">Astrology</a>
+    <a href="database.html" class="nav-link active">Database</a>
+    <a href="compatibility.html" class="nav-link">Compatibility Calculator</a>
+  </nav>
+  <script src="nav-scroll.js"></script>
+  <script src="bottombar.js?v=8"></script>
+  <script src="update-check.js?v=4"></script>
+
+
+  <div class="db-page">
+
+    <div class="box add-category-box">
+      <div class="box-label">New Category</div>
+      <div class="inline-form">
+        <input type="text" id="newCategoryName" placeholder="e.g. Family, Friends, Clients">
+        <button id="addCategoryBtn" class="btn">Add Category</button>
+      </div>
+    </div>
+
+    <div id="categoriesContainer"></div>
+
+  </div>
+</div>
+
+<script src="scroll-viewport.js"></script>
+<script src="big-store.js"></script>
+<script src="db-core.js?v=6"></script>
+<script src="firebase-loader.js"></script>
+<script src="database.js"></script>
+<script src="godlike.js?v=2"></script>
+</body>
+</html>

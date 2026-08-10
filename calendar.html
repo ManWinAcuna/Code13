@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#000000">
+<style>html{background:#000}</style>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="logo.svg" type="image/svg+xml">
+<link rel="icon" href="icon-192.png" sizes="192x192">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<title>Calendar</title>
+<link rel="stylesheet" href="style.css?v=3">
+<link rel="stylesheet" href="godlike.css?v=39">
+</head>
+<body>
+<div class="page">
+
+  <nav class="topnav">
+    <a href="stable.html" class="nav-link">🐎 Stable</a>
+    <a href="profile.html" class="nav-link">My Profile</a>
+    <a href="sports-betting.html" class="nav-link">Sports Betting</a>
+    <a href="stocks.html" class="nav-link">Stocks</a>
+    <a href="emax.html" class="nav-link">EMAX</a>
+    <a href="calculator.html" class="nav-link">Calculator</a>
+    <a href="famous.html" class="nav-link">Famous Lookup</a>
+    <a href="calendar.html" class="nav-link active">Calendar</a>
+    <a href="astrology.html" class="nav-link">Astrology</a>
+    <a href="database.html" class="nav-link">Database</a>
+    <a href="compatibility.html" class="nav-link">Compatibility Calculator</a>
+  </nav>
+  <script src="nav-scroll.js"></script>
+  <script src="bottombar.js?v=8"></script>
+  <script src="update-check.js?v=4"></script>
+
+
+  <div class="calendar-layout">
+    <div class="calendar-main">
+
+      <div class="calendar-summary">
+        <div class="calendar-stat">
+          <div class="calendar-stat-label">Universal Year</div>
+          <div class="calendar-stat-value" id="calUniversalYear">-</div>
+        </div>
+        <div class="calendar-stat">
+          <div class="calendar-stat-label">Universal Month</div>
+          <div class="calendar-stat-value" id="calUniversalMonth">-</div>
+        </div>
+        <div class="calendar-stat">
+          <div class="calendar-stat-label">Year Sign</div>
+          <div class="calendar-stat-value sign" id="calChineseYear">-</div>
+        </div>
+        <div class="calendar-stat">
+          <div class="calendar-stat-label">Month Sign</div>
+          <div class="calendar-stat-value sign" id="calChineseMonth">-</div>
+        </div>
+        <div class="calendar-stat">
+          <div class="calendar-stat-label">Western Zodiac Season</div>
+          <div class="calendar-stat-value sign" id="calZodiacSeason">-</div>
+        </div>
+      </div>
+
+      <div class="calendar-nav">
+        <div class="calendar-nav-group">
+          <button class="icon-btn" id="calPrevBtn" title="Previous month">&lsaquo;</button>
+          <select id="calMonthSelect" class="calendar-nav-select" title="Jump to month"></select>
+          <select id="calYearSelect" class="calendar-nav-select" title="Jump to year"></select>
+          <button class="icon-btn" id="calNextBtn" title="Next month">&rsaquo;</button>
+        </div>
+        <button class="btn" id="calTodayBtn">Today</button>
+        <button class="calendar-highlight-btn" id="calHighlightBtn" type="button" title="Color each day green (best) or red (worst) based on compatibility with your profile">🎨 Highlight Days</button>
+      </div>
+
+      <div class="calendar-planet-filter-row">
+        <span class="calendar-planet-filter-label">Track transits:</span>
+        <div class="astro-filter-bar" id="calPlanetFilter"></div>
+        <button type="button" class="filter-bulk-btn" id="calFilterAllBtn">All</button>
+        <button type="button" class="filter-bulk-btn" id="calFilterNoneBtn">None</button>
+      </div>
+
+      <div class="calendar-card">
+        <div class="calendar-grid" id="calendarGrid"></div>
+      </div>
+
+    </div>
+
+    <div class="calendar-side">
+      <div class="box-label">Compatibility With Me</div>
+      <div class="hours-toggle calendar-rank-toggle">
+        <button type="button" class="hours-toggle-btn active" data-mode="best">Top 5 Best</button>
+        <button type="button" class="hours-toggle-btn" data-mode="worst">Top 5 Worst</button>
+      </div>
+      <div class="calendar-rank-list" id="calendarRankList"></div>
+    </div>
+  </div>
+
+
+</div>
+
+<!-- Deliberately OUTSIDE .page - see category.html for why (scroll-viewport.js
+     wraps only body > .page into the app's real scrolling container; a
+     position:fixed popup left nested inside it can visually lag behind or
+     half-follow the background's own scroll on iOS Safari). -->
+<div class="modal-overlay" id="dayModalOverlay">
+  <div class="modal-box">
+    <button class="modal-close" id="dayModalClose" title="Close">&times;</button>
+    <div id="dayModalBody"></div>
+  </div>
+</div>
+
+<script src="scroll-viewport.js"></script>
+<script src="astronomy.browser.min.js"></script>
+<script src="astro-engine.js"></script>
+<script src="numerology.js"></script>
+<script src="compat-data.js"></script>
+<script src="overrides-engine.js?v=2"></script>
+<script src="compat-engine.js?v=4"></script>
+<script src="big-store.js"></script>
+<script src="db-core.js?v=6"></script>
+<script src="firebase-loader.js"></script>
+<script src="imprint-alignment.js?v=7"></script>
+<script src="compat-render.js?v=11"></script>
+<script src="calendar.js?v=4"></script>
+<script src="godlike.js?v=2"></script>
+</body>
+</html>
