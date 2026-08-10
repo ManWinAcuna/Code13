@@ -209,6 +209,18 @@
     .c13-lock-progress { margin-top: 4px; font-size: 11px; color: var(--muted, #5b6a80); text-align: center; }
     .c13-lock-cta { margin: 9px auto 0; width: fit-content; padding: 5px 16px; border-radius: 18px;
       font-size: 11.5px; font-weight: 700; background: var(--yellow, #f5c542); color: #10131c; }
+    /* Blurred-in-place tease: the section stays visible so free users see
+       the shape of what exists, but what's under the blur is DECOY data -
+       the real values never enter the DOM, so nothing leaks via devtools. */
+    .c13-blurwrap { position: relative; }
+    .c13-blurwrap .c13-blurred { filter: blur(7px); user-select: none; pointer-events: none; }
+    .c13-blur-overlay { position: absolute; inset: 0; z-index: 5; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 6px; cursor: pointer;
+      background: rgba(0,0,0,.25); border-radius: 12px; border: none; width: 100%;
+      font-family: inherit; color: var(--text, #dfe7f3); padding: 10px; }
+    .c13-blur-overlay .c13-bo-line { font-size: 12px; text-align: center; line-height: 1.4;
+      max-width: 300px; text-shadow: 0 1px 6px #000; }
+    .c13-blur-overlay .c13-lock-cta { margin: 2px auto 0; }
   `;
   const style = document.createElement('style');
   style.textContent = css;

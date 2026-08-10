@@ -76,20 +76,32 @@ function render() {
   setText('missing', r.missing);
   setText('twentyEightDay', r.twentyEightDay);
 
-  setText('pinnacle1', r.pinnacles.values[0]);
-  setText('pinnacle2', r.pinnacles.values[1]);
-  setText('pinnacle3', r.pinnacles.values[2]);
-  setText('pinnacle4', r.pinnacles.values[3]);
-  setText('pinnacle1Compound', r.pinnacles.compounds[0]);
-  setText('pinnacle2Compound', r.pinnacles.compounds[1]);
-  setText('pinnacle3Compound', r.pinnacles.compounds[2]);
-  setText('pinnacle4Compound', r.pinnacles.compounds[3]);
+  // Free users on profile.html get DECOY pinnacle data under the blur
+  // (see the c13ProfileGated block below) - the real values must never
+  // enter the DOM, or the blur is just a devtools speed bump.
+  if (typeof c13ProfileGated !== 'undefined' && c13ProfileGated) {
+    setText('pinnacle1', '3'); setText('pinnacle2', '7');
+    setText('pinnacle3', '1'); setText('pinnacle4', '9');
+    setText('pinnacle1Compound', '21'); setText('pinnacle2Compound', '16');
+    setText('pinnacle3Compound', '28'); setText('pinnacle4Compound', '18');
+    setText('pinnacleAge1', 'Birth – 27'); setText('pinnacleAge2', '28 – 36');
+    setText('pinnacleAge3', '37 – 45'); setText('pinnacleAge4', '46+');
+  } else {
+    setText('pinnacle1', r.pinnacles.values[0]);
+    setText('pinnacle2', r.pinnacles.values[1]);
+    setText('pinnacle3', r.pinnacles.values[2]);
+    setText('pinnacle4', r.pinnacles.values[3]);
+    setText('pinnacle1Compound', r.pinnacles.compounds[0]);
+    setText('pinnacle2Compound', r.pinnacles.compounds[1]);
+    setText('pinnacle3Compound', r.pinnacles.compounds[2]);
+    setText('pinnacle4Compound', r.pinnacles.compounds[3]);
 
-  const [age1, age2, age3] = r.pinnacles.ages;
-  setText('pinnacleAge1', `Birth – ${age1}`);
-  setText('pinnacleAge2', `${age1 + 1} – ${age2}`);
-  setText('pinnacleAge3', `${age2 + 1} – ${age3}`);
-  setText('pinnacleAge4', `${age3 + 1}+`);
+    const [age1, age2, age3] = r.pinnacles.ages;
+    setText('pinnacleAge1', `Birth – ${age1}`);
+    setText('pinnacleAge2', `${age1 + 1} – ${age2}`);
+    setText('pinnacleAge3', `${age2 + 1} – ${age3}`);
+    setText('pinnacleAge4', `${age3 + 1}+`);
+  }
 
   setText('pyReduced', r.py.reduced);
   setText('pmReduced', r.pm.reduced);
@@ -412,15 +424,16 @@ if (pyReducedEl) {
   });
 }
 
-// The Pinnacles section swaps for the lock tease (values never even
-// render into the DOM for a free user - nothing to peek at in devtools).
-// When a profile birthdate exists, the why-line is personalized: the
-// reader's real current chapter, veiled (Boost13 copy spec - their own
-// data sells harder than any sentence). The flip age stays behind the
-// paywall.
+// The Pinnacles section stays VISIBLE for free users, blurred in place
+// (owner's call - same tease philosophy as The Hours: see the shape of
+// what exists, feel the pull). What's under the blur is the DECOY data
+// render() writes above - the real values never enter the DOM, so the
+// blur isn't just a devtools speed bump. The overlay's why-line is
+// personalized: the reader's real current chapter, veiled - the flip
+// age stays behind the paywall.
 if (c13ProfileGated) {
-  const pinnaclesBox = document.querySelector('.pinnacles-collapsible');
-  if (pinnaclesBox) {
+  const pinnaclesGrid = document.querySelector('.pinnacles-collapsible .pinnacles-grid');
+  if (pinnaclesGrid) {
     let whyLine = 'Your core numbers say who you are. Pinnacles say when.';
     try {
       const prof = loadProfile();
@@ -433,12 +446,19 @@ if (c13ProfileGated) {
         whyLine = 'You are in chapter ' + chapter + ' of 4 right now. The age it flips is one tap away.';
       }
     } catch (e) {}
-    pinnaclesBox.outerHTML = c13LockHtml(
-      'Pinnacles',
-      'Your life has four chapters, each with different rules. Playing chapter 2 moves in a chapter 3 year is how people lose whole years.',
-      whyLine,
-      'pinnacles'
-    );
+    const wrap = document.createElement('div');
+    wrap.className = 'c13-blurwrap';
+    pinnaclesGrid.parentNode.insertBefore(wrap, pinnaclesGrid);
+    wrap.appendChild(pinnaclesGrid);
+    pinnaclesGrid.classList.add('c13-blurred');
+    const overlay = document.createElement('button');
+    overlay.type = 'button';
+    overlay.className = 'c13-blur-overlay';
+    overlay.innerHTML = '<span class="c13-lock-ic">🔒</span>'
+      + '<span class="c13-bo-line">' + whyLine + '</span>'
+      + '<span class="c13-lock-cta">Code13+</span>';
+    overlay.addEventListener('click', () => c13OpenPaywall('pinnacles'));
+    wrap.appendChild(overlay);
   }
 }
 
