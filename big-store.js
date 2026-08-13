@@ -16,7 +16,9 @@
 // update the cache synchronously then persist in the background. So
 // loadMlbPredictions() and friends keep their exact signatures and behavior.
 
-const BIG_STORE_DB = 'numerology_big_store';
+// Code13: own IndexedDB name - the origin is shared with numerology-app
+// (see storage-scope.js) and IndexedDB is origin-scoped too.
+const BIG_STORE_DB = 'c13_big_store';
 const BIG_STORE_TABLE = 'kv';
 const BIG_STORE_DB_VERSION = 1;
 
