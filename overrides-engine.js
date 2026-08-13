@@ -29,6 +29,30 @@ function saveOverrides(overrides) {
   if (typeof cloudPushKey === 'function') cloudPushKey(OVERRIDES_KEY);
 }
 
+/* Code13 (2026-08-13): override values are READ-ONLY in this app - there
+   is no Settings UI, and the values come from the owner's numerology-app:
+   its Settings page publishes every save to a world-readable
+   publicConfig/overrides doc in its Firebase, and this fetches that doc
+   on load, caching it into the same localStorage key every consumer
+   (compat-engine, imprint-alignment, db-core) already reads. Owner edits
+   propagate to every Code13 user on their next page load. If the fetch
+   fails (offline, or the publicConfig rules aren't applied yet), the
+   last cached copy or the baked defaults carry - never an error. */
+(function syncOverridesFromOwner() {
+  const DOC_URL = 'https://firestore.googleapis.com/v1/projects/advanced-numerology-d3f0f/databases/(default)/documents/publicConfig/overrides';
+  try {
+    fetch(DOC_URL)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((doc) => {
+        const json = doc && doc.fields && doc.fields.json && doc.fields.json.stringValue;
+        if (!json) return;
+        JSON.parse(json); // validate before trusting it
+        localStorage.setItem(OVERRIDES_KEY, json);
+      })
+      .catch(() => {});
+  } catch (e) {}
+})();
+
 // Generic section reader - "compat", "imprintDomains", "imprintWeights",
 // "betting" - each consumer (this file, imprint-alignment.js, db-core.js)
 // owns the shape of its own section.

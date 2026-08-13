@@ -7,18 +7,21 @@
   // Code13 ships only the 8 agreed pages (no Markets/Stable/EMAX/Cloud
   // Restore - those are numerology-app-only, see project_code13_boost13_spec
   // memory: "strictly the 8, no exceptions").
+  // Today stands alone, dead center (owner's call 2026-08-13) - the same
+  // center-slot treatment the Stable horse gets in numerology-app.
+  // Database is promoted to its own tab (it's the flagship paid feature).
   const TABS = [
     { id: 'days', icon: '📅', label: 'Days', items: [
-      { href: 'today.html', icon: '☀️', label: 'Today' },
       { href: 'calendar.html', icon: '📅', label: 'Calendar' },
       { href: 'astrology.html', icon: '🌙', label: 'Astrology' },
-    ], match: ['today', 'calendar', 'astrology'] },
+    ], match: ['calendar', 'astrology'] },
     { id: 'tools', icon: '🧮', label: 'Tools', items: [
       { href: 'calculator.html', icon: '🧮', label: 'Calculator' },
       { href: 'compatibility.html', icon: '🤝', label: 'Compatibility' },
       { href: 'famous.html', icon: '⭐', label: 'Famous Lookup' },
-      { href: 'database.html', icon: '🗂', label: 'Database' },
-    ], match: ['calculator', 'compatibility', 'famous', 'database', 'category'] },
+    ], match: ['calculator', 'compatibility', 'famous'] },
+    { id: 'today', icon: '☀️', label: 'Today', href: 'today.html', match: ['today'] },
+    { id: 'database', icon: '🗂', label: 'Database', href: 'database.html', match: ['database', 'category'] },
     { id: 'profile', icon: '👤', label: 'Profile', href: 'profile.html', match: ['profile'] },
   ];
 

@@ -296,7 +296,13 @@ function renderPersonalHours() {
   if (bwBoxEl) bwBoxEl.style.display = '';
   if (hoursSectionEl) hoursSectionEl.style.display = '';
 
-  const [hh, mm] = timeInput.value.split(':').map(Number);
+  // Code13: Personal Hours gets the Pinnacles treatment on profile.html -
+  // visible but blurred, with DECOY data underneath (a fixed 10:30 table,
+  // never the real birth time's - nothing real to peek at in devtools)
+  // and a lock overlay opening the hours paywall. Calculator stays fully
+  // free per the locked gating spec.
+  const c13HoursGated = typeof c13ProfileGated !== 'undefined' && c13ProfileGated;
+  const [hh, mm] = c13HoursGated ? [10, 30] : timeInput.value.split(':').map(Number);
   const table = getPersonalHoursTable(hh, mm);
 
   emptyEl.style.display = 'none';
@@ -333,6 +339,27 @@ function renderPersonalHours() {
     const tile = el.closest('.bw-hour');
     if (tile) tile.classList.toggle('bw-hour-fin', !!(financial && el.textContent === financial.row.label));
   });
+
+  // The blur + lock overlay itself (idempotent - this rerenders on every
+  // input/toggle). All three hour surfaces blur; one overlay on the main
+  // tables box carries the tap-to-paywall.
+  if (c13HoursGated) {
+    [boxEl, finBoxEl, bwBoxEl].forEach((el) => { if (el) el.classList.add('c13-blurred'); });
+    if (boxEl && !(boxEl.parentNode && boxEl.parentNode.classList.contains('c13-blurwrap'))) {
+      const wrap = document.createElement('div');
+      wrap.className = 'c13-blurwrap';
+      boxEl.parentNode.insertBefore(wrap, boxEl);
+      wrap.appendChild(boxEl);
+      const overlay = document.createElement('button');
+      overlay.type = 'button';
+      overlay.className = 'c13-blur-overlay';
+      overlay.innerHTML = '<span class="c13-lock-ic">🔒</span>'
+        + '<span class="c13-bo-line">Your best hour, your worst hour, your financial hour. All 24, scored.</span>'
+        + '<span class="c13-lock-cta">Code13+</span>';
+      overlay.addEventListener('click', () => c13OpenPaywall('hours'));
+      wrap.appendChild(overlay);
+    }
+  }
 }
 
 document.querySelectorAll('.hours-toggle-btn').forEach((btn) => {
