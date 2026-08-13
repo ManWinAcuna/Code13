@@ -255,15 +255,15 @@ function renderCompatHero(containerEl, r, nameA, nameB, opts) {
       </div>
     </div>`;
 
-  // Code13 (corrected 2026-08-10): scores at every level are fine to show -
-  // the final %, Today's Compatibility, the Imprint score, per-system
-  // meters. Only the MECHANICS stay hidden: the formula strip with its
-  // weight percentages, and the per-match +N points inside imprint rows.
-  const pillLabel = deep
-    ? (deep.noImprintData ? '✨ No Imprint Data' : `✨ Imprint ${deep.imprintScore} · see what matched`)
-    : '✨ Check My Imprints';
-  const revealLabelClosed = deep ? `▾ Today's Compatibility: ${r.finalScore}` : '▾ See full breakdown';
-  const revealLabelOpen = deep ? `▴ Hide Today's Compatibility` : '▴ Hide full breakdown';
+  // Code13 (2026-08-13): imprint is calculation-only here - it still
+  // feeds the deep blend, but NOTHING imprint-branded renders: no pill,
+  // no "see what matched", no imprint score (owner: "keep it in
+  // calculation but don't show anything in regards to it"). And the
+  // deep-mode reveal label is a plain "Compatibility" - numerology-app's
+  // "Today's Compatibility" wording assumed the other side IS today,
+  // which is wrong in this app's person/object/place flow.
+  const revealLabelClosed = deep ? `▾ Compatibility: ${r.finalScore}` : '▾ See full breakdown';
+  const revealLabelOpen = deep ? `▴ Hide Compatibility` : '▴ Hide full breakdown';
 
   containerEl.innerHTML = `
     <div class="compat-hero${opts.compact ? ' compact' : ''}" style="--tier-c:${COMPAT_TIER_COLOR[tier]}; --tier-glow:${COMPAT_TIER_GLOW[tier]}">
@@ -280,7 +280,6 @@ function renderCompatHero(containerEl, r, nameA, nameB, opts) {
       <div class="compat-verdict-head">${verdict.head}</div>
       <div class="compat-verdict-body">${verdict.body}</div>
       ${cardsHtml}
-      ${opts.pillDateA && opts.pillDateB ? `<button type="button" class="imprint-pill" data-imprint-pill>${pillLabel}</button><div class="imprint-pill-body" data-imprint-pill-body hidden></div>` : ''}
       ${bonusChipsHtml(r.bonuses)}
       <button type="button" class="compat-reveal-btn" data-compat-reveal>${revealLabelClosed}</button>
       <div class="compat-reveal-body" data-compat-reveal-body>
@@ -298,27 +297,6 @@ function renderCompatHero(containerEl, r, nameA, nameB, opts) {
     revealBtn.textContent = open ? revealLabelOpen : revealLabelClosed;
   });
 
-  const pillBtn = containerEl.querySelector('[data-imprint-pill]');
-  if (pillBtn) {
-    pillBtn.addEventListener('click', () => {
-      const body = containerEl.querySelector('[data-imprint-pill-body]');
-      const open = body.hidden;
-      if (open && !body.dataset.built) {
-        // Deep mode already computed this exact imprint result up front to
-        // build the blend - reuse it instead of running the whole
-        // computation a second time on tap.
-        body.innerHTML = deep
-          ? (deep.personMode
-              ? imprintPersonAlignmentResultHtml(deep.imprint, nameA, nameB)
-              : imprintAlignmentResultHtml(deep.imprint, nameA, nameB))
-          : imprintPillContentHtml(opts.pillDateA, nameA, opts.pillDateB, nameB, opts.pillPersonMode, opts.pillPersonSide);
-        body.dataset.built = '1';
-        wireImprintRevealButtons(body);
-      }
-      body.hidden = !open;
-      pillBtn.classList.toggle('open', open);
-    });
-  }
 }
 
 /* =========================== Imprint Alignment (2026-08-06) ==========

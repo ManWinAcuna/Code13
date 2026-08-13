@@ -137,7 +137,10 @@ function render() {
   energyEl.textContent = `${energyFlow.finalScore}%`;
   energyEl.className = `box-value ${tierClass(energyFlow.finalScore)}`;
 
+  // Code13: the First Imprints section doesn't exist in this app's pages -
+  // guarded so render() survives the missing element.
   const imprintsEl = document.getElementById('firstImprints');
+  if (imprintsEl) {
   imprintsEl.innerHTML = '';
   r.firstImprints.forEach((fi) => {
     const div = document.createElement('div');
@@ -145,6 +148,7 @@ function render() {
     div.innerHTML = `<div class="lp-label">LP ${fi.target}</div><div class="lp-day">${fi.day}</div>`;
     imprintsEl.appendChild(div);
   });
+  }
 
   const monthsBody = document.querySelector('#monthsTable tbody');
   monthsBody.innerHTML = '';

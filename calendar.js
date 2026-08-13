@@ -223,22 +223,13 @@ function renderGrid() {
     cell.className = 'calendar-day';
     if (isCurrentMonth && d === today.getDate()) cell.classList.add('today');
     if (date < todayMidnight) cell.classList.add('past');
+    // Code13 (2026-08-13): no imprint surfaces - the tile marker that
+    // numerology-app shows here is removed (owner: "keep it in calculation
+    // but don't show anything in regards to it").
     let imprintMarker = '';
     if (meDate) {
       const tier = tierClass(computeCompatibility(meDate, date).finalScore);
       if (tier === 'good' || tier === 'bad') cell.classList.add(`tier-${tier}`);
-      // Imprint boost (2026-08-07) - inline on the tile itself, not just
-      // behind a tap into the day modal's compare pill, per the user's own
-      // call ("I should get that boost here").
-      const dayImprint = computeImprintAlignment(meDate, date);
-      if (dayImprint.matches.length) {
-        const emojis = [];
-        dayImprint.matches.forEach((m) => (m.domains || []).forEach((dm) => {
-          const e = dm.split(' ')[0];
-          if (!emojis.includes(e)) emojis.push(e);
-        }));
-        imprintMarker = `<span class="calendar-day-imprint-marker" title="Imprint boost: ${dayImprint.matches.map((m) => m.label).join(', ')}">${emojis.join('') || '🎯'}</span>`;
-      }
     }
     cell.innerHTML = `
       <div class="calendar-day-num">${d}</div>
@@ -289,21 +280,9 @@ function openDayModal(date) {
     `<div class="breakdown-row"><span>${t.symbol} ${t.label} Transit</span><span class="breakdown-score">Enters ${t.sign}</span></div>`
   ).join('');
 
-  // Imprint boost (2026-08-07) - inline in the day detail itself, not just
-  // behind the "Compare with My Profile" button below.
-  const profileForImprint = loadProfile();
-  let imprintRow = '';
-  if (profileForImprint && profileForImprint.date) {
-    const dayImprint = computeImprintAlignment(parseDateStr(profileForImprint.date), date);
-    if (dayImprint.matches.length) {
-      const emojis = [];
-      dayImprint.matches.forEach((m) => (m.domains || []).forEach((dm) => {
-        const e = dm.split(' ')[0];
-        if (!emojis.includes(e)) emojis.push(e);
-      }));
-      imprintRow = `<div class="breakdown-row"><span>${emojis.join('') || '🎯'} Imprint Boost</span><span class="breakdown-score">${dayImprint.matches.map((m) => m.label).join(', ')}</span></div>`;
-    }
-  }
+  // Code13 (2026-08-13): no imprint surfaces - numerology-app's Imprint
+  // Boost row is removed here on purpose.
+  const imprintRow = '';
 
   document.getElementById('dayModalBody').innerHTML = `
     <div class="day-modal-date">${dateLabel}</div>
