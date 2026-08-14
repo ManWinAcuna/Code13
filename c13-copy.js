@@ -169,7 +169,6 @@
   window.c13ComposeFlow = function (ef, overlays) {
     const b12 = C13B.bank12;
     if (!b12 || !C13B.bank11) return null;
-    c13BeginReading();
     const n = ef.numerology;
     const state = c13FlowState(n.yearScore, n.monthScore, n.dayScore);
     const flow = b12.flow[state];
@@ -184,22 +183,42 @@
     const ud = udStr.indexOf('/') !== -1 ? Number(udStr.split('/')[1]) : Number(udStr);
 
     const seen = {};
+    // Anti-repetition doctrine (owner escalation 2026-08-14 + Bank 12's own
+    // REPETITION CONTROL): Bank 11's same-tier cells share full template
+    // sentences, so showing two of them in one story reads as copy-paste.
+    // Each story now uses each template family AT MOST ONCE - one Bank 11
+    // "current wants" line, one Bank 11 feel/shadow line (label stripped),
+    // one Bank 10 personal line - with the assignment rotating daily. A
+    // same-root pair (its cell text doubles its own descriptor phrase mid
+    // sentence) never renders Bank 11 text at all: Bank 10 carries it.
+    const FLOW_PERMS = [
+      { year: 'main', month: 'more', day: 'b10' },
+      { year: 'more', month: 'b10', day: 'main' },
+      { year: 'b10', month: 'main', day: 'more' },
+      { year: 'main', month: 'b10', day: 'more' },
+      { year: 'b10', month: 'more', day: 'main' },
+      { year: 'more', month: 'main', day: 'b10' },
+    ];
+    const flowPerm = FLOW_PERMS[c13Hash(String(c13DayStamp()) + ':flowperm') % FLOW_PERMS.length];
     function layerLine(hz, p, u, label) {
       const cell = c13CyclePair(p, u);
-      if (!cell) return null;
+      const b10e = (C13B.bank10 || {})[p];
+      const b10line = b10e ? c13Pick('flow:b10:' + hz + ':' + p, b10e[hz]) : null;
       const stackKey = p + '_' + u;
       if (seen[stackKey]) {
         return 'The same current is stacked in your ' + label + ' too. Use the repetition as focus, not as permission to overdo the shadow.';
       }
       seen[stackKey] = true;
-      const h = cell[hz];
-      if (!h) return null;
-      // One line per horizon (Bank 12 rule 2), rotated across the pair's
-      // Bank 11 angles AND the personal side's Bank 10 rotation - so the
-      // same flow state doesn't read identically two days running.
-      const b10e = (C13B.bank10 || {})[p];
-      const pool = [h.main, h.more].concat(b10e ? [c13Pick('flow:b10:' + hz + ':' + p, b10e[hz])] : []).filter(Boolean);
-      return c13Pick('flow:layer:' + hz + ':' + stackKey, pool);
+      const h = (cell && cell[hz]) || {};
+      const more = h.more ? h.more.replace(/^How it can feel:\s*/i, '').replace(/^[a-z]/, function (m) { return m.toUpperCase(); }) : '';
+      let want = flowPerm[hz];
+      if (!cell || p === u) want = 'b10';
+      if (want === 'main' && !h.main) want = 'b10';
+      if (want === 'more' && !more) want = 'b10';
+      if (want === 'main') return h.main;
+      if (want === 'more') return more;
+      if (b10line) return b10line;
+      return p === u ? null : (h.main || more || null);
     }
 
     const yearLine = layerLine('year', py, uy, 'year');
@@ -215,7 +234,17 @@
 
     (overlays || []).forEach((o) => { if (o.line) parts.push(o.line); });
     parts.push(c13Pick('flow:close:' + state, flow.closers));
-    return { state, text: parts.filter(Boolean).join(' '), parts };
+    // Belt and suspenders: if two assembled parts still open with the same
+    // sentence skeleton (templated siblings), the later one is dropped -
+    // a shorter story beats a story that visibly repeats itself.
+    const skeletons = {};
+    const finalParts = parts.filter(Boolean).filter((p) => {
+      const k = p.slice(0, 28).toLowerCase();
+      if (skeletons[k]) return false;
+      skeletons[k] = true;
+      return true;
+    });
+    return { state, text: finalParts.join(' '), parts: finalParts };
   };
 
   /* ---------------- Banks 01/06/08 identity adapters ---------------- */
@@ -322,9 +351,12 @@
   }
   window.c13ThirdPerson = c13ThirdPerson;
 
+  // No usedLines reset here (2026-08-14): the dedupe set lives for the
+  // whole page so the tap popups and this reading can never hand out the
+  // same line twice on one screen. Rotation stays date-seeded, so the
+  // daily-stability behavior is unchanged.
   window.c13ComposeGeneralReading = function (parts, opts) {
     opts = opts || {};
-    c13BeginReading();
     const items = [];
     (parts || []).forEach((p) => {
       let entry = null;

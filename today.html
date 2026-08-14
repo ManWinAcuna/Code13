@@ -74,7 +74,7 @@
 <script src="banks/c13-bank-cycles.js?v=2"></script>
 <script src="banks/c13-bank-cycle-pairs.js?v=2"></script>
 <script src="banks/c13-bank-composer.js?v=2"></script>
-<script src="c13-copy.js?v=3"></script>
+<script src="c13-copy.js?v=4"></script>
 <script src="bottombar.js?v=9"></script>
 <script src="update-check.js?v=4"></script>
 <script>
@@ -203,7 +203,10 @@
         var k = c13PairRoots(pair);
         var cell = c13DayPair(k.p, k.d);
         if (!cell) return null;
-        var idxs = lean === 'good' ? [0, 2, 4] : [0, 3, 4];
+        // Angle 0 excluded (2026-08-14): it restates the tier relationship
+        // the altar verdict already announced - same screen, same claim,
+        // read as a repeat. Feel/opportunity/watch/best-use only here.
+        var idxs = lean === 'good' ? [1, 2, 4] : [1, 3, 4];
         return c13Pick('find:' + lean + ':' + k.p + '_' + k.d,
           idxs.map(function (kk) { return cell.a[kk]; }));
       }
