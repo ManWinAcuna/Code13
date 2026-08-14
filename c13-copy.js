@@ -30,8 +30,11 @@
     const x = d || new Date();
     return x.getFullYear() * 10000 + (x.getMonth() + 1) * 100 + x.getDate();
   }
-  // usedLines: Bank 12 repetition control - never the same line twice in
-  // one assembled reading. Callers bracket a reading with c13BeginReading().
+  // usedLines: Bank 12 repetition control, page-lifetime - never the same
+  // line twice anywhere on one screen. On EXHAUSTION c13Pick returns null,
+  // never a repeat (2026-08-14, owner's screenshots: the old arr[start]
+  // fallback re-issued the exact lines an earlier consumer had already
+  // displayed - a shorter surface always beats a repeating one).
   let usedLines = new Set();
   window.c13BeginReading = function () { usedLines = new Set(); };
   window.c13Pick = function (key, arr, date) {
@@ -41,7 +44,7 @@
       const cand = arr[(start + i) % arr.length];
       if (!usedLines.has(cand)) { usedLines.add(cand); return cand; }
     }
-    return arr[start];
+    return null;
   };
 
   /* ---------------- tiers ---------------- */
@@ -260,51 +263,81 @@
     }
     return out;
   }
+  // One entry object per entity per page (2026-08-14, owner's screenshots:
+  // Day Born and Day# share a root, and two separate builds drained the
+  // sharp pool until the picker's old fallback re-issued Day Born's exact
+  // bullets as Day#'s "more angles"). The cache makes every consumer of a
+  // repeated root share ONE allocation: characteristics (3) and
+  // moreCharacteristics (2) are disjoint by construction, and whatever is
+  // left over becomes `extra` - the only sharp lines the General Reading
+  // is allowed to use, so popups and reading can never mirror each other.
+  const identityCache = {};
+  function allocIdentity(cacheKey, build) {
+    if (!identityCache[cacheKey]) {
+      const e = build();
+      if (e) {
+        const taken = (e.characteristics || []).concat(e.moreCharacteristics || []);
+        e.extra = (e.sharpPool || []).filter((l) => taken.indexOf(l) === -1);
+        delete e.sharpPool;
+      }
+      identityCache[cacheKey] = e;
+    }
+    return identityCache[cacheKey];
+  }
   window.c13NumberIdentity = function (root, impure) {
-    const e = (C13B.bank01 || {})[root];
-    if (!e) return null;
-    // Impure masters keep the shared file's oscillation copy as the
-    // identity CLAIM (doctrine text, not display phrasing) - the Bible's
-    // pools ride along as characteristics/details either way.
-    const base = (typeof numberIdentityV2 === 'function' && impure) ? numberIdentityV2(root, true) : null;
-    return {
-      name: e.name,
-      light: base ? base.light : c13Pick('id:light:' + root, e.light),
-      shadow: base ? base.shadow : c13Pick('id:shadow:' + root, e.shadow),
-      core: e.core,
-      moves: e.moves,
-      characteristics: pickN('id:sharp:' + root, e.sharp, 3),
-      moreCharacteristics: pickN('id:sharp2:' + root, e.sharp, 2),
-      scene: c13Pick('id:scene:' + root, e.scenes),
-      depth: (C13B.bank01depth || {})[root] || null,
-    };
+    return allocIdentity('num:' + root + ':' + (impure ? 1 : 0), () => {
+      const e = (C13B.bank01 || {})[root];
+      if (!e) return null;
+      // Impure masters keep the shared file's oscillation copy as the
+      // identity CLAIM (doctrine text, not display phrasing) - the Bible's
+      // pools ride along as characteristics/details either way.
+      const base = (typeof numberIdentityV2 === 'function' && impure) ? numberIdentityV2(root, true) : null;
+      return {
+        name: e.name,
+        light: base ? base.light : c13Pick('id:light:' + root, e.light),
+        shadow: base ? base.shadow : c13Pick('id:shadow:' + root, e.shadow),
+        core: e.core,
+        moves: e.moves,
+        characteristics: pickN('id:sharp:' + root, e.sharp, 3),
+        moreCharacteristics: pickN('id:sharp2:' + root, e.sharp, 2),
+        scene: c13Pick('id:scene:' + root, e.scenes),
+        sharpPool: e.sharp,
+        depth: (C13B.bank01depth || {})[root] || null,
+      };
+    });
   };
   window.c13AnimalIdentity = function (animal) {
-    const e = (C13B.bank06 || {})[animal];
-    if (!e) return null;
-    return {
-      name: e.name,
-      light: c13Pick('an:light:' + animal, e.light),
-      shadow: c13Pick('an:shadow:' + animal, e.shadow),
-      deep: e.moves,
-      characteristics: pickN('an:sharp:' + animal, e.sharp, 3),
-      moreCharacteristics: pickN('an:sharp2:' + animal, e.sharp, 2),
-      scene: c13Pick('an:scene:' + animal, e.scenes),
-      depth: (C13B.bank06depth || {})[animal] || null,
-    };
+    return allocIdentity('an:' + animal, () => {
+      const e = (C13B.bank06 || {})[animal];
+      if (!e) return null;
+      return {
+        name: e.name,
+        light: c13Pick('an:light:' + animal, e.light),
+        shadow: c13Pick('an:shadow:' + animal, e.shadow),
+        deep: e.moves,
+        characteristics: pickN('an:sharp:' + animal, e.sharp, 3),
+        moreCharacteristics: pickN('an:sharp2:' + animal, e.sharp, 2),
+        scene: c13Pick('an:scene:' + animal, e.scenes),
+        sharpPool: e.sharp,
+        depth: (C13B.bank06depth || {})[animal] || null,
+      };
+    });
   };
   window.c13SignIdentity = function (sign) {
-    const e = (C13B.bank08 || {})[sign];
-    if (!e) return null;
-    return {
-      name: e.name,
-      light: c13Pick('sg:light:' + sign, e.light),
-      shadow: c13Pick('sg:shadow:' + sign, e.shadow),
-      characteristics: pickN('sg:sharp:' + sign, e.sharp, 3),
-      moreCharacteristics: pickN('sg:sharp2:' + sign, e.sharp, 2),
-      scene: c13Pick('sg:scene:' + sign, e.scenes),
-      depth: (C13B.bank08depth || {})[sign] || null,
-    };
+    return allocIdentity('sg:' + sign, () => {
+      const e = (C13B.bank08 || {})[sign];
+      if (!e) return null;
+      return {
+        name: e.name,
+        light: c13Pick('sg:light:' + sign, e.light),
+        shadow: c13Pick('sg:shadow:' + sign, e.shadow),
+        characteristics: pickN('sg:sharp:' + sign, e.sharp, 3),
+        moreCharacteristics: pickN('sg:sharp2:' + sign, e.sharp, 2),
+        scene: c13Pick('sg:scene:' + sign, e.scenes),
+        sharpPool: e.sharp,
+        depth: (C13B.bank08depth || {})[sign] || null,
+      };
+    });
   };
   window.c13PlanetRole = function (planet) {
     return (C13B.bank08planets || {})[planet] || null;
@@ -387,9 +420,12 @@
         ? nextConnector(registerRelation(prevRegister, it.register))
         : null;
       const depth = it.p.depth || (it.p.kind === 'planet' ? 'planet-lean' : 'std');
-      // Scenes arrive as complete framed lines ("The field medic: care is
-      // practical..."), so they join the pool as-is, no wrapper.
-      const detailPool = [].concat(it.entry.characteristics || [], it.entry.scene ? [it.entry.scene] : [], it.entry.deep ? [it.entry.deep] : []);
+      // Detail lines come ONLY from the entry's leftover pool (`extra`) and
+      // its scene - never from characteristics (popup bullets) or deep (the
+      // zodiac popup's intro line), so no line can appear in both a tap
+      // popup and this reading. Scenes arrive as complete framed lines
+      // ("The field medic: care is practical..."), so they join as-is.
+      const detailPool = (it.entry.extra || []).concat(it.entry.scene ? [it.entry.scene] : []);
       let para = null;
       if (it.p.kind === 'planet') {
         const roleLine = 'Your ' + it.p.planet + ' sits in ' + it.p.key + '.';
