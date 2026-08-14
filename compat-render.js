@@ -116,13 +116,13 @@ function compatTierWord(score, bank) { return bank[scoreClass(score)]; }
 // only case handled directly here.
 function compatVerdictCopy(r) {
   if (r.flags.includes('perfect')) {
-    return { head: 'Exceptional Compatibility', body: 'A rare, deep alignment — this connection amplifies both sides.' };
+    return { head: 'Exceptional Compatibility', body: 'A rare, deep alignment. This connection amplifies both sides.' };
   }
   if (r.flags.includes('ideal')) {
-    return { head: 'Strong Compatibility', body: 'Real alignment here — worth building on, not just a nice number.' };
+    return { head: 'Strong Compatibility', body: 'Real alignment here. Worth building on, not just a nice number.' };
   }
   if (r.flags.includes('clash')) {
-    return { head: 'Challenging Compatibility', body: 'The numbers are working against this one — go in with eyes open.' };
+    return { head: 'Challenging Compatibility', body: 'The numbers are working against this one. Go in with eyes open.' };
   }
   return { head: 'Workable Compatibility', body: 'Enough common ground to work with. Nothing forcing this, nothing fighting it either.' };
 }
@@ -243,12 +243,12 @@ function renderCompatHero(containerEl, r, nameA, nameB, opts) {
         <div class="compat-card-vs"><span>${lifePathDisplayText(r.numerology.entityLifePath)}</span><i>vs</i><span>${lifePathDisplayText(r.numerology.dayLifePath)}</span></div>
         <div class="compat-card-tier">${compatTierWord(r.numerology.score, COMPAT_NUMEROLOGY_WORDS)}</div>
       </div>
-      <div class="compat-card" style="--cc-t:${COMPAT_TIER_COLOR[scoreClass(r.vietnamese.score)]}">
+      <div class="compat-card" data-c13-viet="${r.vietnamese.entityYearSign}|${r.vietnamese.dayYearSign}" style="--cc-t:${COMPAT_TIER_COLOR[scoreClass(r.vietnamese.score)]}">
         <div class="compat-card-name">Vietnamese Zodiac</div>
         <div class="compat-card-vs compat-card-vs-glyph"><span>${VIETNAMESE_ZODIAC_EMOJI[r.vietnamese.entityYearSign] || ''}</span><i>vs</i><span>${VIETNAMESE_ZODIAC_EMOJI[r.vietnamese.dayYearSign] || ''}</span></div>
         <div class="compat-card-tier">${compatTierWord(r.vietnamese.score, COMPAT_VIETNAMESE_WORDS)}</div>
       </div>
-      <div class="compat-card" style="--cc-t:${COMPAT_TIER_COLOR[scoreClass(r.western.score)]}">
+      <div class="compat-card" data-c13-western="${r.western.entitySunSign}|${r.western.daySunSign}" style="--cc-t:${COMPAT_TIER_COLOR[scoreClass(r.western.score)]}">
         <div class="compat-card-name">Western Zodiac</div>
         <div class="compat-card-vs compat-card-vs-glyph"><span>${ZODIAC_SYMBOLS[r.western.entitySunSign] || ''}</span><i>vs</i><span>${ZODIAC_SYMBOLS[r.western.daySunSign] || ''}</span></div>
         <div class="compat-card-tier">${compatTierWord(r.western.score, COMPAT_WESTERN_WORDS)}</div>
@@ -497,9 +497,9 @@ function wireCompatReveal(containerEl) {
 // Renders a computeEnergyFlow() result - Personal Year/Month/Day vs
 // Universal Year/Month/Day, numerology + Vietnamese zodiac only.
 const ENERGY_FLOW_VERDICT = {
-  good: { head: 'Flowing With You', body: "Your cycles and the world's are in step — push." },
-  mid: { head: 'Mixed Flow', body: 'Some cycles align, others drag — pick your spots.' },
-  bad: { head: 'Against the Current', body: "The day's cycles cut across yours — go light." },
+  good: { head: 'Flowing With You', body: "Your cycles and the world's are in step. Push." },
+  mid: { head: 'Mixed Flow', body: 'Some cycles align, others drag. Pick your spots.' },
+  bad: { head: 'Against the Current', body: "The day's cycles cut across yours. Go light." },
 };
 function renderEnergyFlowResults(containerEl, r) {
   containerEl.classList.add('active');
@@ -571,9 +571,9 @@ function renderMonthOutlook(containerEl, rankedMonths) {
 // running a different comparison, so this breakdown always adds up to the
 // same score the list already showed for that month.
 const MONTH_DETAIL_VERDICT = {
-  good: { head: 'Strong Month', body: 'The cycle backs you here — worth aiming real plans at.' },
-  mid: { head: 'Workable Month', body: 'Neutral tape — what you bring matters more than what it gives.' },
-  bad: { head: 'Challenging Month', body: 'The cycle leans against you — lighter commitments, more review.' },
+  good: { head: 'Strong Month', body: 'The cycle backs you here. Worth aiming real plans at.' },
+  mid: { head: 'Workable Month', body: 'Neutral tape. What you bring matters more than what it gives.' },
+  bad: { head: 'Challenging Month', body: 'The cycle leans against you. Lighter commitments, more review.' },
 };
 function renderMonthDetail(containerEl, m) {
   containerEl.classList.add('active');
@@ -858,7 +858,12 @@ function renderCompoundStories(r, birthDate) {
     { kind: 'planet', planet: 'Jupiter', key: r.jupiterSign, depth: 'planet-lean' },
     { kind: 'planet', planet: 'Venus', key: r.venusSign, depth: 'planet-lean' },
   ];
-  const generalReading = composeGeneralReading(generalParts, { thirdPerson: isFamous });
+  // Copy Bible (2026-08-13): the Code13 composer sources the same weight
+  // order/depths from the owner's Bank 01/06/08 pools; the shared-file
+  // composer stays the fallback when banks aren't loaded on a page.
+  const c13Reading = (window.c13ComposeGeneralReading && window.C13B && C13B.bank01 && C13B.bank06 && C13B.bank08)
+    ? c13ComposeGeneralReading(generalParts, { thirdPerson: isFamous }) : null;
+  const generalReading = c13Reading || composeGeneralReading(generalParts, { thirdPerson: isFamous });
   const generalLink = insertStoryLink('generalReadingStoryLink', '.grid4.subrow', '🧭 the general reading');
   if (generalLink) {
     generalLink.style.display = generalReading ? '' : 'none';
@@ -875,7 +880,9 @@ function renderCompoundStories(r, birthDate) {
     ];
     const seenNumberSlots = {};
     identityTargets.forEach((t) => {
-      t.entry = numberIdentityV2(t.root, t.impure);
+      // Bible pools first (rotating sharp lines); shared bank fallback.
+      t.entry = (window.c13NumberIdentity && window.C13B && C13B.bank01 ? c13NumberIdentity(t.root, t.impure) : null)
+        || numberIdentityV2(t.root, t.impure);
       if (!t.entry) return;
       const prior = seenNumberSlots[t.root];
       if (prior === undefined) {
@@ -901,11 +908,13 @@ function renderCompoundStories(r, birthDate) {
       el.onclick = () => openIdentityModal(t.label, t.entry, t.opts);
     });
 
+    const c13Sign = (s) => (window.c13SignIdentity && window.C13B && C13B.bank08 ? c13SignIdentity(s) : null);
+    const c13Animal = (a) => (window.c13AnimalIdentity && window.C13B && C13B.bank06 ? c13AnimalIdentity(a) : null);
     const zodiacTargets = [
-      { id: 'sunSign', label: 'Western Sign', entry: WESTERN_IDENTITY[r.sunSign] },
-      { id: 'chineseYear', label: 'Vietnamese Year', entry: VIETNAMESE_IDENTITY[r.chineseYear], animalKey: r.chineseYear },
-      { id: 'chineseMonth', label: 'Vietnamese Month', entry: VIETNAMESE_IDENTITY[r.chineseMonth], animalKey: r.chineseMonth },
-      { id: 'chineseDay', label: 'Vietnamese Day', entry: VIETNAMESE_IDENTITY[r.chineseDay], animalKey: r.chineseDay },
+      { id: 'sunSign', label: 'Western Sign', entry: c13Sign(r.sunSign) || WESTERN_IDENTITY[r.sunSign] },
+      { id: 'chineseYear', label: 'Vietnamese Year', entry: c13Animal(r.chineseYear) || VIETNAMESE_IDENTITY[r.chineseYear], animalKey: r.chineseYear },
+      { id: 'chineseMonth', label: 'Vietnamese Month', entry: c13Animal(r.chineseMonth) || VIETNAMESE_IDENTITY[r.chineseMonth], animalKey: r.chineseMonth },
+      { id: 'chineseDay', label: 'Vietnamese Day', entry: c13Animal(r.chineseDay) || VIETNAMESE_IDENTITY[r.chineseDay], animalKey: r.chineseDay },
     ];
     const seenAnimalSlots = {};
     zodiacTargets.forEach((t) => {

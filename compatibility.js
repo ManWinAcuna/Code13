@@ -230,7 +230,7 @@ function selectSuggestion(match) {
       document.querySelector('.person-date[data-person="B"]').value = isoToDisplay(info.date);
       const verb = KIND_VERB[info.kind] || MODE_COPY[mode].verb;
       const via = info.via === 'country' ? ' (via its country)' : '';
-      setLookupStatus(`✓ ${info.title || match.title} — ${verb} ${info.date}${via}`, false);
+      setLookupStatus(`✓ ${info.title || match.title} · ${verb} ${info.date}${via}`, false);
     })
     .catch(() => setLookupStatus('Lookup failed. Try again, or type the date manually.', true));
 }

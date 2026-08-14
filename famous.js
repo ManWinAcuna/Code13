@@ -103,7 +103,7 @@ function selectFamousPerson(title) {
       document.getElementById('bday').value = isoToDisplay(info.date);
       render();
       const verb = FAMOUS_KIND_VERB[info.kind] || 'born';
-      setFamousStatus(`✓ ${title} — ${verb} ${info.date}`, false);
+      setFamousStatus(`✓ ${title} · ${verb} ${info.date}`, false);
       // Only a lookup that actually resolved a date spends a free one.
       c13MeterUse('famous');
       refreshFamousMeterLine();

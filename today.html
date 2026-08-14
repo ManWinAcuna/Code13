@@ -67,7 +67,14 @@
 <script src="firebase-loader.js"></script>
 <script src="entitlements.js?v=5"></script>
 <script src="imprint-alignment.js?v=7"></script>
-<script src="compat-render.js?v=17"></script>
+<script src="compat-render.js?v=18"></script>
+<script src="banks/c13-bank-identity.js?v=2"></script>
+<script src="banks/c13-bank-day.js?v=2"></script>
+<script src="banks/c13-bank-day-pairs.js?v=2"></script>
+<script src="banks/c13-bank-cycles.js?v=2"></script>
+<script src="banks/c13-bank-cycle-pairs.js?v=2"></script>
+<script src="banks/c13-bank-composer.js?v=2"></script>
+<script src="c13-copy.js?v=3"></script>
 <script src="bottombar.js?v=9"></script>
 <script src="update-check.js?v=4"></script>
 <script>
@@ -104,18 +111,18 @@
   var MEAN = {
     1:  { kw: ['initiate', 'will', 'alone'],      move: 'Start things. Lead, don’t follow.' },
     2:  { kw: ['feeling', 'pairs', 'patience'],   move: 'Cooperate, don’t push.' },
-    3:  { kw: ['voice', 'play', 'scatter'],       move: 'Express — but finish what you open.' },
+    3:  { kw: ['voice', 'play', 'scatter'],       move: 'Express, but finish what you open.' },
     4:  { kw: ['structure', 'work', 'slow'],      move: 'Build. No shortcuts today.' },
     5:  { kw: ['restless', 'motion', 'risk'],     move: 'Move fast, commit to nothing long.' },
     6:  { kw: ['duty', 'home', 'balance'],        move: 'Handle the obligations first.' },
     7:  { kw: ['depth', 'caution', 'learning'],   move: 'Bearish tape. Observe more than you act.' },
-    8:  { kw: ['power', 'execution', 'yield'],    move: 'Bullish. Execute — this is your kind of tape.' },
+    8:  { kw: ['power', 'execution', 'yield'],    move: 'Bullish. Execute. This is your kind of tape.' },
     9:  { kw: ['closure', 'release', 'flow'],     move: 'Finish cycles. Let things end.' },
-    11: { kw: ['intuition', 'static', 'waves'],   move: 'Emotional and sporadic — leans down. Trade small.' },
+    11: { kw: ['intuition', 'static', 'waves'],   move: 'Emotional and sporadic, leans down. Trade small.' },
     13: { kw: ['work', 'karma', 'forge'],         move: 'Heavy lifting pays double today.' },
     22: { kw: ['monument', 'master', 'stone'],    move: 'Think in years, act with weight.' },
     28: { kw: ['radiant', 'command', 'gold'],     move: 'Bullish sun. Press your advantage.' },
-    33: { kw: ['teacher', 'heart', 'lift'],       move: 'Give — what you teach returns.' }
+    33: { kw: ['teacher', 'heart', 'lift'],       move: 'Give. What you teach returns.' }
   };
   function meanOf(n) { return MEAN[n] || { kw: ['—', '—', '—'], move: '' }; }
 
@@ -150,6 +157,104 @@
   var wholeStory = null;
   if (me) {
     try { wholeStory = composeDayReading(me, day0); } catch (e) {}
+  }
+
+  /* ------------------------- Copy Bible overlay (2026-08-13) -------------
+     Same findings machinery (real computeCompatibility weights decide what
+     gets featured), the owner's Bank 02/03/04/05/11/12 text renders it.
+     Every swap falls back to composeDayReading's original wording when a
+     bank cell doesn't exist (e.g. a 13 Universal Day has no bank04 row) -
+     the Bible deliberately covers 1-9/11/22/28/33 plus literal 2. */
+  var efFull = null, flowStory = null, dayOverlays = [];
+  if (me) { try { efFull = computeEnergyFlow(me, day0); } catch (e) {} }
+  if (wholeStory && window.c13DayEnergy) {
+    try {
+      var f13 = wholeStory.findings;
+      var ener = c13DayEnergy(f13.uDayRoot);
+      if (ener) {
+        wholeStory.openText = ener.opener + ' ' + ener.light;
+        wholeStory.watchText = ener.watch;
+      }
+      // Overlay triggers mirror what the engine already decided: the 7-8
+      // flip is read off the watchItems getDayWatchItems() built (its 8
+      // line turns into a watch when the enemy exception fired).
+      var hits78 = (wholeStory.watchItems || []).some(function (w) { return w.root === 8 && w.kind === 'watch'; });
+      dayOverlays = c13Overlays({
+        uDayRoot: f13.uDayRoot, energyRoot: f13.energyRoot, enemy78: hits78,
+        impureMaster: (typeof udInfo !== 'undefined' && udInfo && udInfo.impure) ? udInfo.masterResult : 0,
+      });
+
+      // Featured finding text: one rotated angle from the pair's own
+      // directional entry. The cell is keyed by the LOOKUP roots the score
+      // actually measured, not the master display roots - an impure 33/6
+      // person on a 22/4 day was scored 6-vs-4 by the engine, so the 6_4
+      // cell (tier-true to that 96) is the honest prose; the 33_22 cell
+      // would contradict the verdict right above it. Pure masters keep
+      // their own root (lookup == root there). Oscillation doctrine: the
+      // companion side IS really them on the days the table read it.
+      function c13PairRoots(pair) {
+        if (pair.id !== 'lifePath') return { p: pair.imageRoot, d: pair.todayRoot };
+        var p = pair.imageRoot, d = pair.todayRoot;
+        try { p = compatLifePathInfo(me).lookupValue; } catch (e) {}
+        try { d = ud; } catch (e) {}
+        return { p: p, d: d };
+      }
+      function c13FindingText(pair, lean) {
+        var k = c13PairRoots(pair);
+        var cell = c13DayPair(k.p, k.d);
+        if (!cell) return null;
+        var idxs = lean === 'good' ? [0, 2, 4] : [0, 3, 4];
+        return c13Pick('find:' + lean + ':' + k.p + '_' + k.d,
+          idxs.map(function (kk) { return cell.a[kk]; }));
+      }
+      var ft = wholeStory.featured;
+      // Stash the lookup roots on the featured pairs so verdict() (outside
+      // this scope) names the same archetypes the finding prose uses.
+      [ft.good, ft.bad, ft.lead].forEach(function (p) {
+        if (!p) return;
+        var k = c13PairRoots(p);
+        p.c13p = k.p; p.c13d = k.d;
+      });
+      if (ft.dayType === 'mixed') {
+        var gT = c13FindingText(ft.good, 'good'); if (gT) wholeStory.goodText = gT;
+        var bT = c13FindingText(ft.bad, 'bad'); if (bT) wholeStory.badText = bT;
+      } else if (ft.dayType === 'good') {
+        var gT2 = c13FindingText(ft.lead, 'good'); if (gT2) wholeStory.goodText = gT2;
+      } else if (ft.dayType === 'bad') {
+        var bT2 = c13FindingText(ft.lead, 'bad'); if (bT2) wholeStory.badText = bT2;
+      } else if (window.c13Verdict) {
+        var qv = c13Verdict(0, ft.lead.c13p != null ? ft.lead.c13p : ft.lead.imageRoot,
+          ft.lead.c13d != null ? ft.lead.c13d : ft.lead.todayRoot, { quiet: true });
+        if (qv && qv.signal) wholeStory.goodText = qv.signal;
+      }
+
+      // Actionables from Bank 03's 13/13 pools - same lead/secondary
+      // selection doctrine composeDayReading uses (Universal Day leads;
+      // the featured pair's day-side root supports; mixed day: good pair
+      // feeds the Do, bad pair feeds the Don't). Standing watch chips
+      // (owner-dictated doctrine incl. the 7-8 flip) ride along untouched.
+      if (window.c13ActionLines && window.C13B && C13B.bank03) {
+        var doSec = null, dontSec = null;
+        if (ft.dayType === 'mixed') { doSec = ft.good.todayRoot; dontSec = ft.bad.todayRoot; }
+        else if (ft.dayType === 'bad') { dontSec = ft.lead.todayRoot; }
+        else if (ft.lead) { doSec = ft.lead.todayRoot; }
+        var dayPair13 = (f13.pairs || []).filter(function (p) { return p.id === 'day'; })[0];
+        if (doSec === f13.uDayRoot && dayPair13) doSec = dayPair13.todayRoot;
+        if (dontSec === f13.uDayRoot && dayPair13) dontSec = dayPair13.todayRoot;
+        var acts = [];
+        c13ActionLines(f13.uDayRoot, 'do', 1, ':lead').forEach(function (l) { acts.push({ kind: 'do', icon: '✅', line: 'Do: ' + l }); });
+        if (doSec && doSec !== f13.uDayRoot) c13ActionLines(doSec, 'do', 1, ':sec').forEach(function (l) { acts.push({ kind: 'do', icon: '✅', line: 'Do: ' + l }); });
+        c13ActionLines(f13.uDayRoot, 'dont', 1, ':lead').forEach(function (l) { acts.push({ kind: 'dont', icon: '🚫', line: "Don't: " + l }); });
+        if (dontSec && dontSec !== f13.uDayRoot) c13ActionLines(dontSec, 'dont', 1, ':sec').forEach(function (l) { acts.push({ kind: 'dont', icon: '🚫', line: "Don't: " + l }); });
+        if (acts.length) wholeStory.actionables = acts.concat(wholeStory.watchItems || []);
+      }
+    } catch (e) {}
+  }
+  // The Personal-vs-Universal cycle story (Banks 10/11/12): its own
+  // reading per Bank 12's assembly rules; overlays live here, after the
+  // sentences they qualify, per Bank 12's overlay-priority doctrine.
+  if (efFull && window.c13ComposeFlow) {
+    try { flowStory = c13ComposeFlow(efFull, dayOverlays); } catch (e) {}
   }
 
   /* Fresh installs (icon re-adds) start with empty localStorage; the cloud
@@ -226,8 +331,16 @@
     arc.style.strokeDashoffset = compat != null ? C * (1 - compat / 100) : C * 0.999;
   });
 
-  // keywords etched at three stations of the ring
+  // keywords etched at three stations of the ring - the Bible's own tag
+  // line for the day root when it exists (Bank 02), else the realist table
   var kws = meanOf(ud).kw;
+  try {
+    var b02e = window.C13B && C13B.bank02 && C13B.bank02[ud];
+    if (b02e && b02e.tags && b02e.tags.indexOf('·') !== -1) {
+      var tagKws = b02e.tags.toLowerCase().split('·').map(function (t) { return t.trim(); }).filter(Boolean);
+      if (tagKws.length >= 3) kws = tagKws.slice(0, 3);
+    }
+  } catch (e) {}
   document.getElementById('gkKws').innerHTML =
     '<span class="gk-kw gk-kw1">' + kws[0] + '</span>' +
     '<span class="gk-kw gk-kw2">' + kws[1] + '</span>' +
@@ -282,13 +395,29 @@
   function verdict() {
     var m = meanOf(ud);
     var s = [];
-    if (!me) s.push('No birthday here yet — tap the cloud to sign in, or set it in My Profile.');
+    if (!me) s.push('No birthday here yet. Tap the cloud to sign in, or set it in My Profile.');
+    // SIGNAL then MEANING then ACTION (Bank 04 verdict pools, tier from
+    // the real featured-pair score). Falls back to the old realist lines
+    // if the banks are missing.
+    var ft = wholeStory && wholeStory.featured;
+    var lead = ft && (ft.good || ft.lead || ft.bad);
+    if (compat != null && lead && window.c13Verdict) {
+      var vp = lead.c13p != null ? lead.c13p : lead.imageRoot;
+      var vdRoot = lead.c13d != null ? lead.c13d : lead.todayRoot;
+      var vd = ft.dayType === 'quiet'
+        ? c13Verdict(0, vp, vdRoot, { quiet: true })
+        : c13Verdict(lead.score, vp, vdRoot);
+      if (vd && vd.signal) {
+        s.push('<b>' + compat + '% aligned.</b> ' + vd.signal + (vd.action ? ' ' + vd.action : ''));
+        return s.join(' ');
+      }
+    }
     if (compat != null) {
-      s.push(compat >= 85 ? '<b>' + compat + '% aligned — the day bows to you.</b>'
-        : compat >= 70 ? '<b>' + compat + '% aligned</b> — the day favors you.'
-        : compat >= 50 ? '<b>' + compat + '% aligned</b> — workable. Pick your spots.'
-        : compat >= 40 ? '<b>' + compat + '% aligned</b> — neutral tape. Don’t force it.'
-        : '<b>' + compat + '% aligned</b> — not your day. Size down, observe.');
+      s.push(compat >= 85 ? '<b>' + compat + '% aligned. The day bows to you.</b>'
+        : compat >= 70 ? '<b>' + compat + '% aligned.</b> The day favors you.'
+        : compat >= 50 ? '<b>' + compat + '% aligned.</b> Workable. Pick your spots.'
+        : compat >= 40 ? '<b>' + compat + '% aligned.</b> Neutral tape. Don’t force it.'
+        : '<b>' + compat + '% aligned.</b> Not your day. Size down, observe.');
     }
     s.push(m.move);
     return s.join(' ');
@@ -329,7 +458,7 @@
     var m = meanOf(ud);
     var h = '<div class="gk-card-title">' + ud + (lifePath ? ' × lifepath ' + lifePathDisplayText(lifePath) : '') + '</div>';
     h += '<div class="gk-card-body">' + m.kw.join(' · ') + '. ' + m.move;
-    if (lifePath === 9) h += ' For a 9, a ' + ud + ' day ' + (ud === 5 || ud === 9 ? 'moves WITH you — adapt freely.' : ud === 7 || ud === 11 ? 'pulls against your flow — don’t chase clarity, wait for it.' : ud === 8 || ud === 28 ? 'pays your completion energy in full — close things and collect.' : 'asks you to bend your flow to its shape.');
+    if (lifePath === 9) h += ' For a 9, a ' + ud + ' day ' + (ud === 5 || ud === 9 ? 'moves WITH you. Adapt freely.' : ud === 7 || ud === 11 ? 'pulls against your flow. Don’t chase clarity, wait for it.' : ud === 8 || ud === 28 ? 'pays your completion energy in full. Close things and collect.' : 'asks you to bend your flow to its shape.');
     h += '</div>';
     if (hoursTable) {
       var carriers = [];
@@ -376,7 +505,7 @@
       // layout: practical content stays visible up top, the deeper
       // personal comparison and zodiac context are one tap away). Good
       // always renders before Could improve on a mixed day, fixed order.
-      var hasMore = wholeStory.goodText || wholeStory.badText || wholeStory.watchText || wholeStory.backgroundText;
+      var hasMore = wholeStory.goodText || wholeStory.badText || wholeStory.watchText || wholeStory.backgroundText || flowStory;
       if (hasMore) {
         h += '<button type="button" class="story-col-toggle story-more-toggle" data-col="more">See more</button>';
         h += '<div class="story-col-body" data-col-body="more" hidden>';
@@ -396,6 +525,12 @@
           h += '<div class="story-section"><div class="story-section-label bad">' +
             '<span class="story-glyph bad">▼</span>What to watch for</div>' +
             '<div class="story-section-body">' + wholeStory.watchText + '</div></div>';
+        }
+        // The cycle story (Banks 10/11/12): chapter, emphasis, immediate
+        // move, one closer - assembled by c13ComposeFlow per Bank 12.
+        if (flowStory) {
+          h += '<div class="story-section"><div class="story-section-label">Energy flow</div>' +
+            '<div class="story-section-body">' + flowStory.text + '</div></div>';
         }
         if (wholeStory.backgroundText) {
           h += '<div class="story-section"><div class="story-section-label">Background</div>' +
@@ -608,9 +743,9 @@
       var bh = parseInt(mm3[1], 10) % 12 + (mm3[3].toUpperCase() === 'PM' ? 12 : 0);
       var target = new Date();
       target.setHours(bh, parseInt(mm3[2], 10), 0, 0);
-      if (target <= t) return 'Best hour <b>' + bestLabel + '</b> — ' + (t - target < 60 * 60000 ? '<b>now</b>' : 'passed for today');
+      if (target <= t) return 'Best hour <b>' + bestLabel + '</b> · ' + (t - target < 60 * 60000 ? '<b>now</b>' : 'passed for today');
       var secs = Math.floor((target - t) / 1000);
-      return 'Best hour <b>' + bestLabel + '</b> — in <b>' +
+      return 'Best hour <b>' + bestLabel + '</b> · in <b>' +
         Math.floor(secs / 3600) + 'h ' + Math.floor((secs % 3600) / 60) + 'm ' + (secs % 60) + 's</b>';
     }
     function hoursModalHtml() {
@@ -652,7 +787,7 @@
     if (pick) {
       document.getElementById('gkAlignNext').innerHTML =
         'Next high-alignment day: <b>' + pick.d.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' }) +
-        ' · ' + pick.s + '%</b> — in <b>' + pick.in + ' day' + (pick.in === 1 ? '' : 's') + '</b>';
+        ' · ' + pick.s + '%</b> · in <b>' + pick.in + ' day' + (pick.in === 1 ? '' : 's') + '</b>';
     }
   }
 
