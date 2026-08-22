@@ -330,7 +330,9 @@
        the shape of what exists, but what's under the blur is DECOY data -
        the real values never enter the DOM, so nothing leaks via devtools. */
     .c13-blurwrap { position: relative; }
-    .c13-blurwrap .c13-blurred { filter: blur(7px); user-select: none; pointer-events: none; }
+    /* Unscoped (2026-08-14): blurred values also live OUTSIDE a blurwrap
+       now - the hours best/worst/money boxes blur just their value text. */
+    .c13-blurred { filter: blur(7px); user-select: none; pointer-events: none; }
     .c13-blur-overlay { position: absolute; inset: 0; z-index: 5; display: flex; flex-direction: column;
       align-items: center; justify-content: center; gap: 6px; cursor: pointer;
       background: rgba(0,0,0,.25); border-radius: 12px; border: none; width: 100%;

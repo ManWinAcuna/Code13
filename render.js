@@ -344,15 +344,17 @@ function renderPersonalHours() {
   // an hour is a window (owner's call 2026-08-14). Matching stays on the
   // raw start labels internally.
   const rangeOf = (l) => (window.c13HourRange ? c13HourRange(l) : l);
-  const leadOf = (l) => { const mt = String(l).match(/^\d+/); return mt ? mt[0] : ''; };
   if (c13HoursGated) {
-    bestEl.textContent = 'Starts with a ' + leadOf(ranked[0].row.label);
-    worstEl.textContent = 'Starts with a ' + leadOf(ranked[ranked.length - 1].row.label);
-    best2El.textContent = '···';
-    worst2El.textContent = '···';
-    finEl.textContent = financial ? 'Starts with a ' + leadOf(financial.row.label) : 'None today';
+    // Owner's call (2026-08-14, round 3): no text teases - the values sit
+    // in place blurred past legibility. What's under the blur is a dummy
+    // period, never the real one, so devtools still finds nothing.
+    [bestEl, worstEl, best2El, worst2El, finEl].forEach((el) => {
+      el.textContent = '0:00-0:00 AM';
+      el.classList.add('c13-blurred');
+    });
     finNoteEl.textContent = '';
   } else {
+    [bestEl, worstEl, best2El, worst2El, finEl].forEach((el) => el.classList.remove('c13-blurred'));
     bestEl.textContent = rangeOf(ranked[0].row.label);
     worstEl.textContent = rangeOf(ranked[ranked.length - 1].row.label);
     best2El.textContent = rangeOf(ranked[1].row.label);
