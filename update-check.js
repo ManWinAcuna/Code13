@@ -7,7 +7,7 @@
    for the same deploy. localStorage is untouched by reloads, so this is the
    data-safe way to stay current on the home-screen app. */
 (function () {
-  const API = 'https://api.github.com/repos/ManWinAcuna/Advanced-Numerology/commits/main?per_page=1';
+  const API = 'https://api.github.com/repos/ManWinAcuna/Code13/commits/mai?per_page=1';
   const KEY = 'app_last_seen_sha';
   const POLL_MS = 5 * 60 * 1000;
   // GitHub's unauthenticated REST API allows 60 req/hr/IP - a long, active
