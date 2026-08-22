@@ -45,30 +45,92 @@
     try { localStorage.setItem(m.key, String(used + 1)); } catch (err) {}
   };
 
-  // "27 free readings left · unlimited with Code13+" - the always-visible
-  // counter line (locked copy decision: visible from first use).
+  /* ---------------- Bank 14 sales copy (owner-authored) ----------------
+     All user-facing sales language comes from C13B.bank14 (banks/
+     c13-bank-paid.js) when loaded - meter lines, lock teases, the paywall
+     itself. Day-seeded rotation, {token} interpolation from live state.
+     Every reader falls back to the original v5 strings when the bank file
+     isn't on a page, so nothing can render blank. */
+  function b14() { return (window.C13B && C13B.bank14) || null; }
+  function dayHash(key) {
+    const d = new Date();
+    const s = String(d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate()) + '|' + key;
+    let h = 2166136261;
+    for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
+    return h >>> 0;
+  }
+  function pick14(key, arr) {
+    if (!arr || !arr.length) return null;
+    return arr[dayHash(key) % arr.length];
+  }
+  function fillTokens(s, kind) {
+    if (!s) return s;
+    const m = kind && METERS[kind];
+    const used = m ? Math.min(m.limit, parseInt(localStorage.getItem(m.key) || '0', 10) || 0) : 0;
+    return s
+      .replace(/\{used\}/g, String(used))
+      .replace(/\{remaining\}/g, m ? String(Math.max(0, m.limit - used)) : '')
+      .replace(/\{weekly_price\}/g, '$9.03')
+      .replace(/\{monthly_price\}/g, '$31')
+      .replace(/\{lifetime_price\}/g, '$130')
+      .replace(/\{trial_days\}/g, '3')
+      .replace(/\{member_cap\}/g, '130');
+  }
+
+  // Meter line: normal meter copy while there's room, near-limit pool at
+  // 5 or fewer, limit pool at 0. Real counts only - Bank 14 doctrine.
   window.c13MeterLineHtml = function (kind) {
     if (window.c13Entitled()) return '';
     const m = METERS[kind];
     const left = window.c13MeterLeft(kind);
-    // Full-send at the low end: the cap is real, so the copy says what
-    // running out actually means.
+    const bank = b14();
+    const pools = bank && (kind === 'compat' ? bank.compat : bank.famous);
+    if (pools) {
+      const pool = left <= 0 ? pools.limit : left <= 5 ? pools.near : pools.meter;
+      const line = fillTokens(pick14('meter:' + kind + ':' + (left <= 0 ? 'limit' : left <= 5 ? 'near' : 'ok'), pool), kind);
+      const cta = pick14('meterCta:' + kind, pools.ctas) || 'Get Code13+';
+      const cls = left <= 5 ? 'c13-meter-line low' : 'c13-meter-line';
+      return `<div class="${cls}">${line} <button type="button" class="c13-meter-plus" onclick="c13OpenPaywall('${kind}')">${cta}</button></div>`;
+    }
     if (left <= 5) {
-      return `<div class="c13-meter-line low">${left} ${m.noun} left. After that, you're back to guessing. <button type="button" class="c13-meter-plus" onclick="c13OpenPaywall('${kind}')">Code13+</button></div>`;
+      return `<div class="c13-meter-line low">${left} ${m.noun} left. <button type="button" class="c13-meter-plus" onclick="c13OpenPaywall('${kind}')">Go Unlimited</button></div>`;
     }
     return `<div class="c13-meter-line">${left} ${m.noun} left · <button type="button" class="c13-meter-plus" onclick="c13OpenPaywall('${kind}')">unlimited with Code13+</button></div>`;
   };
 
   /* ---------------- Lock tease cards ----------------
-     Locked copy voice: direct value tease + progress framing. Each locked
-     surface names exactly what's behind the lock, terse, then Code13+. */
+     Locked copy voice: direct value tease + progress framing. The CTA is
+     benefit-first from the surface's own Bank 14 pool ("Unlock My
+     Pinnacles" beats a generic tier name), falling back to Code13+. */
+  const SURFACE_OF = {
+    hours: 'hours', calendar: 'calendar', pinnacles: 'pinnacles', roadmap: 'roadmap',
+    compat: 'compat', famous: 'famous', database: 'database', reading: 'reading',
+  };
+  function surfacePool(context) {
+    const bank = b14();
+    if (!bank) return null;
+    const key = SURFACE_OF[context];
+    return key ? bank[key] : null;
+  }
+  function surfaceCta(context) {
+    const p = surfacePool(context);
+    const cta = p && p.ctas && p.ctas.length ? p.ctas[0] : null;
+    return cta || 'Code13+';
+  }
+  // A rotated Bank 14 line for a lock surface, or the caller's fallback
+  // when the bank isn't loaded there. Used by every tease outside this file.
+  window.c13SurfaceLine = function (context, fallback) {
+    const p = surfacePool(context);
+    const line = p ? pick14('surf:' + context, p.lines) : null;
+    return line ? fillTokens(line, SURFACE_OF[context] === 'compat' || SURFACE_OF[context] === 'famous' ? context : null) : fallback;
+  };
   window.c13LockHtml = function (title, tease, progress, context) {
     return `
       <div class="c13-lock" onclick="c13OpenPaywall('${context || 'generic'}')" role="button" tabindex="0">
         <div class="c13-lock-top"><span class="c13-lock-ic">🔒</span><span class="c13-lock-title">${title}</span></div>
         <div class="c13-lock-tease">${tease}</div>
         ${progress ? `<div class="c13-lock-progress">${progress}</div>` : ''}
-        <div class="c13-lock-cta">Code13+</div>
+        <div class="c13-lock-cta">${surfaceCta(context)}</div>
       </div>`;
   };
 
@@ -111,11 +173,9 @@
     if (el) el.remove();
   };
 
-  // Each lock opens the paywall with its own pitch (owner's call: no one
-  // generic body, and no shared line glued onto every context - the
-  // first version's repeated proof sentence read as repetitive and
-  // didn't fit half of them). Each body is its own emotional scene:
-  // the reader's specific moment of flying blind, unresolved.
+  // Fallback bodies only (pre-Bank-14 copy) - used when banks/c13-bank-
+  // paid.js isn't loaded on a page. With the bank present, every string
+  // in the paywall comes from the owner's Bank 14 pools.
   const CONTEXT_COPY = {
     hours: "Somewhere in today is an hour where you land everything. You'll probably spend it on nothing. The call you're dreading? You'll make it in a red hour and never know. The map exists.",
     database: "The same fight, with the same person, for the same reason. It has a number, and it's been there the whole time. Read the people you love once and stop being blindsided by them.",
@@ -127,30 +187,80 @@
     generic: "You've been living these numbers your whole life without ever reading them. Every person, every day, every hour, already scored. That ends when you unlock it.",
   };
 
+  // Bank 14 plan copy lines arrive prefixed ("WEEKLY:", "LIFETIME SUPPORT:").
+  function planLine(prefix) {
+    const bank = b14();
+    if (!bank) return null;
+    const hit = (bank.plans.copy || []).find((l) => l.startsWith(prefix + ':'));
+    return hit ? fillTokens(hit.slice(prefix.length + 1).trim()) : null;
+  }
+
   window.c13OpenPaywall = function (context) {
     if (document.getElementById('c13Paywall')) return;
-    const bodyText = CONTEXT_COPY[context] || CONTEXT_COPY.generic;
-    const cards = TIERS.map((t) => `
+    const bank = b14();
+
+    // Bank 14 doctrine: sell the exact thing the user just tried to do -
+    // context first, pricing second. Surface paywalls lead with their own
+    // benefit-first CTA as the head and a rotated surface line as the
+    // body; the generic entry uses the primary upgrade screen structure.
+    let head = 'Unlock Your Full Code';
+    let sub = 'Founding launch offer · first 130 members';
+    let bodyText = CONTEXT_COPY[context] || CONTEXT_COPY.generic;
+    let bulletsHtml = '';
+    let fine = 'Subscriptions renew automatically until canceled. Founding prices apply while founding spots last.';
+    let exitHtml = '';
+    if (bank) {
+      const pool = surfacePool(context);
+      if (pool) {
+        head = pool.ctas && pool.ctas.length ? pool.ctas[0] : pick14('pw:head', bank.headlines);
+        bodyText = fillTokens(pick14('pw:body:' + context, pool.lines), SURFACE_OF[context] === 'compat' || SURFACE_OF[context] === 'famous' ? context : null);
+      } else {
+        head = pick14('pw:head', bank.headlines);
+        bodyText = fillTokens(pick14('pw:body:generic', bank.global));
+      }
+      sub = pick14('pw:sub', bank.supporting);
+      // 4 benefit bullets, rotated daily, the whole set over time.
+      const off = dayHash('pw:bullets') % bank.bullets.length;
+      const chosen = [];
+      for (let i = 0; i < 4; i++) chosen.push(bank.bullets[(off + i) % bank.bullets.length]);
+      bulletsHtml = `<div class="c13-pw-bullets">${chosen.map((x) => `<div class="c13-pw-bullet">${x}</div>`).join('')}</div>`;
+      const trust = pick14('pw:trust', bank.trust);
+      const founding = fillTokens((bank.lifetime.lines || []).find((l) => l.indexOf('{member_cap}') !== -1 || l.indexOf('first') !== -1) || '');
+      fine = [trust, founding].filter(Boolean).join(' ');
+      const exitLabel = pick14('pw:exit', bank.exit.labels) || 'Not now';
+      exitHtml = `<button type="button" class="c13-pw-exit" onclick="c13ClosePaywall()">${exitLabel}</button>`;
+    }
+
+    const tierCopy = bank ? {
+      weekly: { note: planLine('WEEKLY'), cta: 'Start 3-Day Trial', badge: '3-Day Trial' },
+      monthly: { note: planLine('MONTHLY'), cta: 'Get Monthly', badge: 'Best for Ongoing Use' },
+      lifetime: { note: planLine('LIFETIME'), cta: 'Get Lifetime', badge: 'Founding Offer' },
+    } : null;
+    const cards = TIERS.map((t) => {
+      const c = tierCopy && tierCopy[t.id];
+      return `
       <div class="c13-tier${t.badgeHot ? ' hot' : ''}${t.badgeGold ? ' gold' : ''}">
-        <div class="c13-tier-badge">${t.badge}</div>
+        <div class="c13-tier-badge">${c ? c.badge : t.badge}</div>
         <div class="c13-tier-name">${t.name}</div>
         <div class="c13-tier-price"><s>${t.list}</s> <b>${t.offer}</b><span>${t.per}</span></div>
-        <div class="c13-tier-note">${t.note}</div>
-        <button type="button" class="c13-tier-cta" onclick="c13Buy('${t.id}')">${t.cta}</button>
-      </div>`).join('');
+        <div class="c13-tier-note">${c && c.note ? c.note : t.note}</div>
+        <button type="button" class="c13-tier-cta" onclick="c13Buy('${t.id}')">${c ? c.cta : t.cta}</button>
+      </div>`;
+    }).join('');
 
     const wrap = document.createElement('div');
     wrap.id = 'c13Paywall';
     wrap.innerHTML = `
       <div class="c13-pw-inner">
         <button type="button" class="c13-pw-close" onclick="c13ClosePaywall()" title="Close">&times;</button>
-        <div class="c13-pw-head">Unlock Your Full Code</div>
-        <div class="c13-pw-sub">Founding launch offer · first 130 members</div>
-        <div class="c13-pw-sig">From Guessing to Planning</div>
+        <div class="c13-pw-head">${head}</div>
+        <div class="c13-pw-sub">${sub}</div>
         <div class="c13-pw-body">${bodyText}</div>
+        ${bulletsHtml}
         <div class="c13-tiers">${cards}</div>
         <div class="c13-pw-note" id="c13PaywallNote"></div>
-        <div class="c13-pw-fine">Subscriptions renew automatically until canceled. Founding prices apply while founding spots last.</div>
+        ${exitHtml}
+        <div class="c13-pw-fine">${fine}</div>
       </div>`;
     document.body.appendChild(wrap);
   };
@@ -195,6 +305,13 @@
     .c13-tier.gold .c13-tier-cta { background: var(--acc-text, #e8b04b); }
     .c13-pw-note { margin-top: 10px; font-size: 12px; color: var(--acc-text, #e8b04b); min-height: 0; display: none; }
     .c13-pw-note.on { display: block; }
+    .c13-pw-bullets { margin: 4px auto 14px; max-width: 320px; text-align: left; }
+    .c13-pw-bullet { position: relative; padding: 3px 0 3px 18px; font-size: 12.5px; line-height: 1.45;
+      color: var(--text, #dfe7f3); }
+    .c13-pw-bullet::before { content: '✦'; position: absolute; left: 0; top: 3px;
+      color: var(--yellow, #f5c542); font-size: 11px; }
+    .c13-pw-exit { margin-top: 12px; background: none; border: none; cursor: pointer; font-family: inherit;
+      font-size: 12.5px; color: var(--muted, #5b6a80); text-decoration: underline; }
     .c13-pw-fine { margin-top: 10px; font-size: 10px; color: var(--muted, #5b6a80); line-height: 1.5; }
     .c13-meter-line { margin-top: 8px; font-size: 11.5px; color: var(--muted, #5b6a80); text-align: center; }
     .c13-meter-line.low { color: var(--acc-text, #e8b04b); }

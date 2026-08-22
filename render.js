@@ -165,6 +165,11 @@ function render() {
   });
 
   renderCompoundStories(r, birthDate);
+  // Code13+ Full Reading entry (profile only - the paid synthesis is the
+  // reader's own profile product, not the calculator's arbitrary dates).
+  if (/profile/i.test(location.pathname) && window.c13PaidReadingLink) {
+    try { c13PaidReadingLink(r, birthDate, birthDate); } catch (e) {}
+  }
 }
 
 // insertStoryLink/openStoryModal/openIdentityModal/openZodiacIdentityModal/
@@ -353,9 +358,12 @@ function renderPersonalHours() {
       const overlay = document.createElement('button');
       overlay.type = 'button';
       overlay.className = 'c13-blur-overlay';
+      const hoursLine = (window.c13SurfaceLine && c13SurfaceLine('hours', null))
+        || 'Your best hour, your worst hour, your financial hour. All 24, scored.';
+      const hoursCta = (window.C13B && C13B.bank14 && C13B.bank14.profileHours.ctas[0]) || 'Code13+';
       overlay.innerHTML = '<span class="c13-lock-ic">🔒</span>'
-        + '<span class="c13-bo-line">Your best hour, your worst hour, your financial hour. All 24, scored.</span>'
-        + '<span class="c13-lock-cta">Code13+</span>';
+        + '<span class="c13-bo-line">' + hoursLine + '</span>'
+        + '<span class="c13-lock-cta">' + hoursCta + '</span>';
       overlay.addEventListener('click', () => c13OpenPaywall('hours'));
       wrap.appendChild(overlay);
     }
@@ -465,7 +473,10 @@ if (pyReducedEl) {
 if (c13ProfileGated) {
   const pinnaclesGrid = document.querySelector('.pinnacles-collapsible .pinnacles-grid');
   if (pinnaclesGrid) {
-    let whyLine = 'Your core numbers say who you are. Pinnacles say when.';
+    // Bank 14 line as the base; the personalized real-chapter line below
+    // still wins when a profile exists (their own data sells harder).
+    let whyLine = (window.c13SurfaceLine && c13SurfaceLine('pinnacles', null))
+      || 'Your core numbers say who you are. Pinnacles say when.';
     try {
       const prof = loadProfile();
       if (prof && prof.date) {

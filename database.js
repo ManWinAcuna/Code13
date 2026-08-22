@@ -48,7 +48,8 @@ if (!c13Entitled()) {
   if (box) {
     box.innerHTML = c13LockHtml(
       'The Database',
-      'Your mom, your boss, the name that just texted you. Everyone runs on a number they have never seen.',
+      (window.c13SurfaceLine && c13SurfaceLine('database', null))
+        || 'Your mom, your boss, the name that just texted you. Everyone runs on a number they have never seen.',
       'You have read yourself. Now read the room.',
       'database'
     );
