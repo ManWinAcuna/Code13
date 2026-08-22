@@ -192,7 +192,7 @@ function tierClass(score) {
 
 let hoursMode = 'reduced';
 
-function renderHoursTableHalf(tableEl, rows, table) {
+function renderHoursTableHalf(tableEl, rows, table, masked) {
   const theadRow = tableEl.querySelector('thead tr');
   theadRow.innerHTML = table.isPM
     ? '<th>Time</th><th>Digital</th><th>Military</th><th>Sign</th>'
@@ -204,17 +204,22 @@ function renderHoursTableHalf(tableEl, rows, table) {
     const tr = document.createElement('tr');
     if (row.isOwnHour) tr.className = 'own-hour';
 
-    const digitalValue = hoursMode === 'raw' ? row.digitalRaw : row.digitalReduced;
-    const digitalTier = tierClass(numerologyCompat(table.digitalRoot, row.digitalReduced));
+    // masked (free profile): the TIME grid is real - it derives from the
+    // birth time the reader typed themselves, nothing secret - but every
+    // VALUE and its tier color is withheld ('·', neutral pill). The old
+    // decoy-table approach showed a fixed 10:30 grid, which read as the
+    // app calculating their hours wrong (owner escalation 2026-08-14).
+    const digitalValue = masked ? '·' : (hoursMode === 'raw' ? row.digitalRaw : row.digitalReduced);
+    const digitalTier = masked ? 'mid' : tierClass(numerologyCompat(table.digitalRoot, row.digitalReduced));
     // Your own hour-sign is always favorable to you, regardless of what the
     // lookup table says about it compared against itself.
-    const signTier = row.sign === table.ownSign ? 'good' : tierClass(vietnameseCompat(table.ownSign, row.sign));
+    const signTier = masked ? 'mid' : (row.sign === table.ownSign ? 'good' : tierClass(vietnameseCompat(table.ownSign, row.sign)));
     const signEmoji = VIETNAMESE_ZODIAC_EMOJI[row.sign] || '';
 
     let militaryCellHtml = '';
     if (table.isPM) {
-      const militaryValue = hoursMode === 'raw' ? row.militaryRaw : row.militaryReduced;
-      const militaryTier = tierClass(numerologyCompat(table.militaryRoot, row.militaryReduced));
+      const militaryValue = masked ? '·' : (hoursMode === 'raw' ? row.militaryRaw : row.militaryReduced);
+      const militaryTier = masked ? 'mid' : tierClass(numerologyCompat(table.militaryRoot, row.militaryReduced));
       militaryCellHtml = `<td class="hour-num"><span class="hour-pill ${militaryTier}">${militaryValue}</span></td>`;
     }
 
@@ -306,75 +311,78 @@ function renderPersonalHours() {
   // never the real birth time's - nothing real to peek at in devtools)
   // and a lock overlay opening the hours paywall. Calculator stays fully
   // free per the locked gating spec.
+  // Gated rework (owner escalations 2026-08-14): the old approach rendered
+  // a DECOY 10:30 table under the blur, and its wrong row times read as
+  // the app miscalculating the reader's hours. Now there is ONE table,
+  // always computed from the real birth time: the TIME grid shows real
+  // (it derives from the time the reader typed - nothing secret), while
+  // every VALUE is masked for free users ('·', neutral tiers, roots
+  // withheld) and the best/worst/money boxes tease the real answers
+  // veiled to their leading digit. Nothing real enters the DOM beyond
+  // what the reader already knows.
   const c13HoursGated = typeof c13ProfileGated !== 'undefined' && c13ProfileGated;
-  // Gated tease (owner's call 2026-08-14): the visible tables stay DECOY
-  // (fixed 10:30 - the real values still never enter the DOM), but the
-  // lock overlay teases the reader's REAL best/worst/financial hours
-  // veiled to their leading digit - computed here from the real birth
-  // time, kept in a local, and thrown away. Their own data sells harder.
-  let c13HourTease = '';
-  if (c13HoursGated && timeInput.value) {
-    try {
-      const [rh, rm] = timeInput.value.split(':').map(Number);
-      const realTable = getPersonalHoursTable(rh, rm);
-      const realRanked = realTable.rows
-        .map((row) => ({ row, score: personalHourScore(realTable, row) }))
-        .sort((a, b) => b.score - a.score);
-      const realFin = findBestFinancialHour(realTable);
-      const lead = (l) => { const mt = String(l).match(/^\d+/); return mt ? mt[0] : ''; };
-      const bits = ['best starts with a ' + lead(realRanked[0].row.label),
-        'worst with a ' + lead(realRanked[realRanked.length - 1].row.label)];
-      if (realFin) bits.push('your money hour with a ' + lead(realFin.row.label));
-      c13HourTease = 'Yours are already scored: ' + bits.join(' · ') + '.';
-    } catch (e) {}
-  }
-  const [hh, mm] = c13HoursGated ? [10, 30] : timeInput.value.split(':').map(Number);
+  const [hh, mm] = timeInput.value.split(':').map(Number);
   const table = getPersonalHoursTable(hh, mm);
 
   emptyEl.style.display = 'none';
   boxEl.style.display = 'block';
-  ownNoteEl.textContent = table.isPM
-    ? `Digital root ${table.digitalRoot} · Military root ${table.militaryRoot} · born in the ${table.ownSign} hour`
-    : `Time root ${table.digitalRoot} · born in the ${table.ownSign} hour`;
+  ownNoteEl.textContent = c13HoursGated
+    ? `born in the ${table.ownSign} hour`
+    : table.isPM
+      ? `Digital root ${table.digitalRoot} · Military root ${table.militaryRoot} · born in the ${table.ownSign} hour`
+      : `Time root ${table.digitalRoot} · born in the ${table.ownSign} hour`;
 
-  renderHoursTableHalf(document.getElementById('hoursTableA'), table.rows.slice(0, 12), table);
-  renderHoursTableHalf(document.getElementById('hoursTableB'), table.rows.slice(12, 24), table);
+  renderHoursTableHalf(document.getElementById('hoursTableA'), table.rows.slice(0, 12), table, c13HoursGated);
+  renderHoursTableHalf(document.getElementById('hoursTableB'), table.rows.slice(12, 24), table, c13HoursGated);
 
   const ranked = table.rows
     .map((row) => ({ row, score: personalHourScore(table, row) }))
     .sort((a, b) => b.score - a.score);
+  const financial = findBestFinancialHour(table);
 
   // Callouts show the full PERIOD ("10:30-11:30 AM"), not just the start -
   // an hour is a window (owner's call 2026-08-14). Matching stays on the
   // raw start labels internally.
   const rangeOf = (l) => (window.c13HourRange ? c13HourRange(l) : l);
-  bestEl.textContent = rangeOf(ranked[0].row.label);
-  worstEl.textContent = rangeOf(ranked[ranked.length - 1].row.label);
-  best2El.textContent = rangeOf(ranked[1].row.label);
-  worst2El.textContent = rangeOf(ranked[ranked.length - 2].row.label);
-
-  const financial = findBestFinancialHour(table);
-  if (financial) {
-    finEl.textContent = rangeOf(financial.row.label);
-    finNoteEl.textContent = `via ${financial.financialNumber}`;
-  } else {
-    finEl.textContent = 'None today';
+  const leadOf = (l) => { const mt = String(l).match(/^\d+/); return mt ? mt[0] : ''; };
+  if (c13HoursGated) {
+    bestEl.textContent = 'Starts with a ' + leadOf(ranked[0].row.label);
+    worstEl.textContent = 'Starts with a ' + leadOf(ranked[ranked.length - 1].row.label);
+    best2El.textContent = '···';
+    worst2El.textContent = '···';
+    finEl.textContent = financial ? 'Starts with a ' + leadOf(financial.row.label) : 'None today';
     finNoteEl.textContent = '';
+  } else {
+    bestEl.textContent = rangeOf(ranked[0].row.label);
+    worstEl.textContent = rangeOf(ranked[ranked.length - 1].row.label);
+    best2El.textContent = rangeOf(ranked[1].row.label);
+    worst2El.textContent = rangeOf(ranked[ranked.length - 2].row.label);
+    if (financial) {
+      finEl.textContent = rangeOf(financial.row.label);
+      finNoteEl.textContent = `via ${financial.financialNumber}`;
+    } else {
+      finEl.textContent = 'None today';
+      finNoteEl.textContent = '';
+    }
   }
 
   // When the personal best/worst hour happens to also be the financial
   // hour, that overlap used to be invisible unless you read both boxes
   // and compared the times yourself - flag whichever tile(s) match.
+  // Masked mode skips it: the overlap would leak which tease is which.
   [bestEl, worstEl, best2El, worst2El].forEach((el) => {
     const tile = el.closest('.bw-hour');
-    if (tile) tile.classList.toggle('bw-hour-fin', !!(financial && el.textContent === rangeOf(financial.row.label)));
+    if (tile) tile.classList.toggle('bw-hour-fin', !c13HoursGated && !!(financial && el.textContent === rangeOf(financial.row.label)));
   });
 
   // The blur + lock overlay itself (idempotent - this rerenders on every
   // input/toggle). All three hour surfaces blur; one overlay on the main
   // tables box carries the tap-to-paywall.
   if (c13HoursGated) {
-    [boxEl, finBoxEl, bwBoxEl].forEach((el) => { if (el) el.classList.add('c13-blurred'); });
+    // No blur anymore: the grid's times are real and deserve to be read
+    // crisp (the blurred decoy read as wrong math). The values are already
+    // masked, so the lock overlay is the only thing standing between the
+    // reader and the answer - which is the point.
     if (boxEl && !(boxEl.parentNode && boxEl.parentNode.classList.contains('c13-blurwrap'))) {
       const wrap = document.createElement('div');
       wrap.className = 'c13-blurwrap';
@@ -388,7 +396,6 @@ function renderPersonalHours() {
       const hoursCta = (window.C13B && C13B.bank14 && C13B.bank14.profileHours.ctas[0]) || 'Code13+';
       overlay.innerHTML = '<span class="c13-lock-ic">🔒</span>'
         + '<span class="c13-bo-line">' + hoursLine + '</span>'
-        + (c13HourTease ? '<span class="c13-bo-line">' + c13HourTease + '</span>' : '')
         + '<span class="c13-lock-cta">' + hoursCta + '</span>';
       overlay.addEventListener('click', () => c13OpenPaywall('hours'));
       wrap.appendChild(overlay);
