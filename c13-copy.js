@@ -47,6 +47,24 @@
     return null;
   };
 
+  /* ---------------- hour periods ---------------- */
+  // "10:30 AM" -> "10:30-11:30 AM" (owner's call 2026-08-14: an hour is a
+  // PERIOD, not a start time). Compact when both ends share a meridiem,
+  // explicit when the span crosses noon/midnight. Display-only: internal
+  // matching keeps using the raw start label.
+  window.c13HourRange = function (label) {
+    const m = String(label).match(/^(\d+):(\d+)\s*(AM|PM)$/i);
+    if (!m) return label;
+    const h12 = Number(m[1]), mm = m[2], ap = m[3].toUpperCase();
+    const h24 = (h12 % 12) + (ap === 'PM' ? 12 : 0);
+    const endH24 = (h24 + 1) % 24;
+    const endH12 = ((endH24 + 11) % 12) + 1;
+    const endAp = endH24 < 12 ? 'AM' : 'PM';
+    return ap === endAp
+      ? h12 + ':' + mm + '-' + endH12 + ':' + mm + ' ' + ap
+      : h12 + ':' + mm + ' ' + ap + '-' + endH12 + ':' + mm + ' ' + endAp;
+  };
+
   /* ---------------- tiers ---------------- */
   // Same thresholds as scoreClass()/compat flags; peak is a stronger COPY
   // pool only (Bank 04 doctrine) - it never changes visible tier colors.

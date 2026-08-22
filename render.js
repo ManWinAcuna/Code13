@@ -307,6 +307,27 @@ function renderPersonalHours() {
   // and a lock overlay opening the hours paywall. Calculator stays fully
   // free per the locked gating spec.
   const c13HoursGated = typeof c13ProfileGated !== 'undefined' && c13ProfileGated;
+  // Gated tease (owner's call 2026-08-14): the visible tables stay DECOY
+  // (fixed 10:30 - the real values still never enter the DOM), but the
+  // lock overlay teases the reader's REAL best/worst/financial hours
+  // veiled to their leading digit - computed here from the real birth
+  // time, kept in a local, and thrown away. Their own data sells harder.
+  let c13HourTease = '';
+  if (c13HoursGated && timeInput.value) {
+    try {
+      const [rh, rm] = timeInput.value.split(':').map(Number);
+      const realTable = getPersonalHoursTable(rh, rm);
+      const realRanked = realTable.rows
+        .map((row) => ({ row, score: personalHourScore(realTable, row) }))
+        .sort((a, b) => b.score - a.score);
+      const realFin = findBestFinancialHour(realTable);
+      const lead = (l) => { const mt = String(l).match(/^\d+/); return mt ? mt[0] : ''; };
+      const bits = ['best starts with a ' + lead(realRanked[0].row.label),
+        'worst with a ' + lead(realRanked[realRanked.length - 1].row.label)];
+      if (realFin) bits.push('your money hour with a ' + lead(realFin.row.label));
+      c13HourTease = 'Yours are already scored: ' + bits.join(' · ') + '.';
+    } catch (e) {}
+  }
   const [hh, mm] = c13HoursGated ? [10, 30] : timeInput.value.split(':').map(Number);
   const table = getPersonalHoursTable(hh, mm);
 
@@ -323,14 +344,18 @@ function renderPersonalHours() {
     .map((row) => ({ row, score: personalHourScore(table, row) }))
     .sort((a, b) => b.score - a.score);
 
-  bestEl.textContent = ranked[0].row.label;
-  worstEl.textContent = ranked[ranked.length - 1].row.label;
-  best2El.textContent = ranked[1].row.label;
-  worst2El.textContent = ranked[ranked.length - 2].row.label;
+  // Callouts show the full PERIOD ("10:30-11:30 AM"), not just the start -
+  // an hour is a window (owner's call 2026-08-14). Matching stays on the
+  // raw start labels internally.
+  const rangeOf = (l) => (window.c13HourRange ? c13HourRange(l) : l);
+  bestEl.textContent = rangeOf(ranked[0].row.label);
+  worstEl.textContent = rangeOf(ranked[ranked.length - 1].row.label);
+  best2El.textContent = rangeOf(ranked[1].row.label);
+  worst2El.textContent = rangeOf(ranked[ranked.length - 2].row.label);
 
   const financial = findBestFinancialHour(table);
   if (financial) {
-    finEl.textContent = financial.row.label;
+    finEl.textContent = rangeOf(financial.row.label);
     finNoteEl.textContent = `via ${financial.financialNumber}`;
   } else {
     finEl.textContent = 'None today';
@@ -342,7 +367,7 @@ function renderPersonalHours() {
   // and compared the times yourself - flag whichever tile(s) match.
   [bestEl, worstEl, best2El, worst2El].forEach((el) => {
     const tile = el.closest('.bw-hour');
-    if (tile) tile.classList.toggle('bw-hour-fin', !!(financial && el.textContent === financial.row.label));
+    if (tile) tile.classList.toggle('bw-hour-fin', !!(financial && el.textContent === rangeOf(financial.row.label)));
   });
 
   // The blur + lock overlay itself (idempotent - this rerenders on every
@@ -363,6 +388,7 @@ function renderPersonalHours() {
       const hoursCta = (window.C13B && C13B.bank14 && C13B.bank14.profileHours.ctas[0]) || 'Code13+';
       overlay.innerHTML = '<span class="c13-lock-ic">🔒</span>'
         + '<span class="c13-bo-line">' + hoursLine + '</span>'
+        + (c13HourTease ? '<span class="c13-bo-line">' + c13HourTease + '</span>' : '')
         + '<span class="c13-lock-cta">' + hoursCta + '</span>';
       overlay.addEventListener('click', () => c13OpenPaywall('hours'));
       wrap.appendChild(overlay);

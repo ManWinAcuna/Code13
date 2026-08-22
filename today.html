@@ -75,7 +75,7 @@
 <script src="banks/c13-bank-cycles.js?v=2"></script>
 <script src="banks/c13-bank-cycle-pairs.js?v=2"></script>
 <script src="banks/c13-bank-composer.js?v=2"></script>
-<script src="c13-copy.js?v=5"></script>
+<script src="c13-copy.js?v=6"></script>
 <script src="bottombar.js?v=9"></script>
 <script src="update-check.js?v=4"></script>
 <script>
@@ -314,11 +314,16 @@
   // lockedHourHint is captured BEFORE the null: the tease shows the
   // reader's real best hour, veiled to its leading number (Boost13 copy
   // spec: their own data sells harder than any sentence).
-  var hoursLocked = false, lockedHourHint = '';
+  var hoursLocked = false, lockedHourHint = '', lockedFinHint = '';
   if (rankedHours && !(window.c13Entitled && c13Entitled())) {
     hoursLocked = true;
     var hintMatch = rankedHours[0].row.label.match(/^\d+/);
     lockedHourHint = hintMatch ? hintMatch[0] : '';
+    // The money hour gets its own veiled tease (owner's call 2026-08-14).
+    if (finHour) {
+      var finMatch = finHour.row.label.match(/^\d+/);
+      lockedFinHint = finMatch ? finMatch[0] : '';
+    }
     hoursTable = null; rankedHours = null; finHour = null;
   }
 
@@ -717,6 +722,7 @@
         || 'The raise, the trade, the text sitting in your drafts. Right move at the wrong hour and it still goes sideways.',
       lockedHourHint
         ? 'Your best hour today starts with a ' + lockedHourHint + '.'
+          + (lockedFinHint ? ' Your money hour with a ' + lockedFinHint + '.' : '')
         : "You know today's number. You don't know when it peaks.",
       'hours'
     );
@@ -748,9 +754,10 @@
       var bh = parseInt(mm3[1], 10) % 12 + (mm3[3].toUpperCase() === 'PM' ? 12 : 0);
       var target = new Date();
       target.setHours(bh, parseInt(mm3[2], 10), 0, 0);
-      if (target <= t) return 'Best hour <b>' + bestLabel + '</b> · ' + (t - target < 60 * 60000 ? '<b>now</b>' : 'passed for today');
+      var bestShown = window.c13HourRange ? c13HourRange(bestLabel) : bestLabel;
+      if (target <= t) return 'Best hour <b>' + bestShown + '</b> · ' + (t - target < 60 * 60000 ? '<b>now</b>' : 'passed for today');
       var secs = Math.floor((target - t) / 1000);
-      return 'Best hour <b>' + bestLabel + '</b> · in <b>' +
+      return 'Best hour <b>' + bestShown + '</b> · in <b>' +
         Math.floor(secs / 3600) + 'h ' + Math.floor((secs % 3600) / 60) + 'm ' + (secs % 60) + 's</b>';
     }
     function hoursModalHtml() {
@@ -758,7 +765,7 @@
         var sc = scoreByIndex[row.index];
         var isFin = row.index === finIdx;
         return '<div class="gk-hr-row t-' + tierOf(sc) + (isFin ? ' fin' : '') + (i === curPos ? ' now' : '') + '">' +
-          '<span class="gk-hr-time">' + row.label + '</span>' +
+          '<span class="gk-hr-time">' + (window.c13HourRange ? c13HourRange(row.label) : row.label) + '</span>' +
           '<span class="gk-hr-num">' + numOf(row) + '</span>' +
           '<span class="gk-hr-tag">' + (i === curPos ? 'now' : isFin ? '$' : '') + '</span>' +
         '</div>';
