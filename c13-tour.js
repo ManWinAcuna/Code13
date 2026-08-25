@@ -1,27 +1,98 @@
-/* Code13 first-run tour (Boost13 2026-08-25, 14 answers locked).
-   Spotlight walkthrough over the REAL Today page: the page dims, a gold
-   ring frames one element per beat, one line each, five gold dots.
-   Beats: 1 the altar number, 2 inline birth date capture (date required,
-   time optional), 3 your day verdict, 4 the hours (locked tease), 5 the
-   bottom tabs, then a clean landing card. Skip appears only once the
-   birth date is in (beats 3+). Devices that already hold a profile are
-   marked seen automatically and never see it; replay via the ? button
-   on Today or "Replay the app tour" on Profile (today.html?tour=1).
-   The capture beat saves through the app's own saveProfile() and
-   reloads once, resuming at beat 3. All tour lines are functional
-   drafts - the owner rewrites any of them whenever.
+/* Code13 walkthrough engine (Boost13 2026-08-25, 14 answers; extended to
+   the whole app same day, owner call: "do the same for profile,
+   calculator, compatibility, famous lookup").
+
+   Spotlight tours over the REAL pages: dim + gold ring + one Cinzel line
+   per beat + gold dot progress. Today runs the full first-run flow (five
+   beats with the INLINE birth date capture; skip only after the date is
+   in; devices that already hold a profile are auto-marked seen; ends on
+   a clean landing card). The other pages run short 2-3 beat intros,
+   skippable from beat one, shown once per device per page. Replay:
+   the ? button each page grows after its tour is seen, plus
+   today.html?tour=1 from Profile's replay link (?tour=1 forces any
+   page's tour). All lines are functional drafts the owner rewrites
+   freely.
 
    Also owns the styling of .gk-go-profile, the actionable buttons that
    replaced the app's dead-end "set your birthday" lines. */
 (function () {
-  var SEEN_KEY = 'c13_tour_seen_v1';
-  var STEP_KEY = 'c13_tour_step_v1';
+  var m = location.pathname.match(/([a-z-]+)\.html/);
+  var PAGE = m ? m[1] : 'today';
+  if (location.pathname === '/' || location.pathname === '') PAGE = 'today';
+
+  function q(sel) { return document.querySelector(sel); }
+
+  var TOURS = {
+    today: {
+      main: true,
+      seenKey: 'c13_tour_seen_v1',
+      beats: [
+        { target: function () { return q('#gkNum') || q('.gk-altar'); },
+          line: "This is today's number. The whole day runs on its energy. Tap it any time for its meaning." },
+        { target: function () { return q('.gk-ringzone') || q('.gk-altar'); }, capture: true,
+          line: 'Now make it yours. Your birth date is your code, and Code13 reads every day against it.' },
+        { target: function () { return q('#gkVerdict') || q('#gkDayread'); },
+          line: 'This is YOUR day now: your score against its energy and the move it calls for. New every midnight.' },
+        { target: function () { return q('#gkDayread .c13-lock') || q('.gk-strip') || q('#gkDayread'); },
+          line: 'Inside the day are your hours: best, worst, money hour. Monthly members see them in full.' },
+        { target: function () { return q('.bb-bar'); },
+          line: 'The rest lives down here: Compatibility, Calendar, your Profile. Everything reads from your birth date.' },
+      ],
+    },
+    profile: {
+      seenKey: 'c13_tour_seen_profile_v1',
+      beats: [
+        { target: function () { return q('#profileCoreSection'); },
+          line: 'Your chart lives here: Life Path, Day Born, Day#, Combo. Tap any number for its full story.' },
+        { target: function () { return q('#profileZodiacSection'); },
+          line: 'Your zodiac layers and your Personal Cycles: the year, month, and day you are moving through right now.' },
+        { target: function () { return q('#personalHoursSection') || q('.pinnacles-collapsible'); },
+          line: 'The deep layers: your hours and your Pinnacles. Monthly members see them unveiled.' },
+      ],
+    },
+    calculator: {
+      seenKey: 'c13_tour_seen_calculator_v1',
+      beats: [
+        { target: function () { var el = q('#bday'); return (el && el.closest('.box')) || el; },
+          line: 'Type any birth date: a friend, a crush, a rival. Code13 reads them like it reads you.' },
+        { target: function () { return q('.grid4'); },
+          line: 'Their full chart appears here. Add a birth time and their hours compute too.' },
+      ],
+    },
+    compatibility: {
+      seenKey: 'c13_tour_seen_compatibility_v1',
+      beats: [
+        { target: function () { return q('#modeSelect') || q('.compat-mode-select'); },
+          line: 'Compatibility: you against a person, a date, or anything with a birthday. Pick a mode.' },
+        { target: function () { return null; },
+          line: 'Every check weighs all the layers: numerology, Vietnamese, Western. One score, then the why.' },
+      ],
+    },
+    famous: {
+      seenKey: 'c13_tour_seen_famous_v1',
+      beats: [
+        { target: function () { return q('.famous-search-box'); },
+          line: 'Look up anyone famous. Their birth date pulls in automatically and their full chart opens.' },
+        { target: function () { return null; },
+          line: 'Their chart reads exactly like yours: same numbers, same layers. Dates come from public sources, so a rare one can be off.' },
+      ],
+    },
+  };
+
+  var cfg = TOURS[PAGE];
+  if (!cfg) return;
+  var SEEN_KEY = cfg.seenKey;
+  var STEP_KEY = 'c13_tour_step_v1'; // only the main tour resumes across a reload
+  var N = cfg.beats.length;
   var forced = false;
   try { forced = new URLSearchParams(location.search).get('tour') === '1'; } catch (e) {}
 
   function seen() { try { return localStorage.getItem(SEEN_KEY) === '1'; } catch (e) { return false; } }
   function markSeen() {
-    try { localStorage.setItem(SEEN_KEY, '1'); localStorage.removeItem(STEP_KEY); } catch (e) {}
+    try {
+      localStorage.setItem(SEEN_KEY, '1');
+      if (cfg.main) localStorage.removeItem(STEP_KEY);
+    } catch (e) {}
   }
   function getProfile() { try { return loadProfile(); } catch (e) { return null; } }
 
@@ -73,21 +144,6 @@
   style.textContent = css;
   document.head.appendChild(style);
 
-  /* ------------------------- the five beats ------------------------- */
-  function q(sel) { return document.querySelector(sel); }
-  var BEATS = [
-    { target: function () { return q('#gkNum') || q('.gk-altar'); }, skip: false,
-      line: "This is today's number. The whole day runs on its energy. Tap it any time for its meaning." },
-    { target: function () { return q('.gk-ringzone') || q('.gk-altar'); }, skip: false, capture: true,
-      line: 'Now make it yours. Your birth date is your code, and Code13 reads every day against it.' },
-    { target: function () { return q('#gkVerdict') || q('#gkDayread'); }, skip: true,
-      line: 'This is YOUR day now: your score against its energy and the move it calls for. New every midnight.' },
-    { target: function () { return q('#gkDayread .c13-lock') || q('.gk-strip') || q('#gkDayread'); }, skip: true,
-      line: 'Inside the day are your hours: best, worst, money hour. Monthly members see them in full.' },
-    { target: function () { return q('.bb-bar'); }, skip: true,
-      line: 'The rest lives down here: Compatibility, Calendar, your Profile. Everything reads from your birth date.' },
-  ];
-
   var root = null;
   var current = 0;
 
@@ -99,14 +155,18 @@
 
   function dotsHtml(i) {
     var h = '<div class="c13-tour-dots">';
-    for (var k = 1; k <= 5; k++) h += '<i class="' + (k === i ? 'on' : '') + '"></i>';
+    for (var k = 1; k <= N; k++) h += '<i class="' + (k === i ? 'on' : '') + '"></i>';
     return h + '</div>';
   }
 
+  // Main tour: skip only once the date is in (beats 3+). Page tours:
+  // skippable from the first beat.
+  function skipAllowed(i) { return cfg.main ? i >= 3 : true; }
+
   function showBeat(i) {
     current = i;
-    try { localStorage.setItem(STEP_KEY, String(i)); } catch (e) {}
-    var b = BEATS[i - 1];
+    if (cfg.main) { try { localStorage.setItem(STEP_KEY, String(i)); } catch (e) {} }
+    var b = cfg.beats[i - 1];
     var el = b.target();
     if (!root) {
       root = document.createElement('div');
@@ -128,9 +188,9 @@
     } else {
       inner += dotsHtml(i)
         + '<button type="button" class="c13-tour-next" id="c13TourGo">'
-        + (i === 5 ? 'Finish' : 'Next') + '</button>';
+        + (i === N ? (cfg.main ? 'Finish' : 'Done') : 'Next') + '</button>';
     }
-    if (b.skip) inner += '<button type="button" class="c13-tour-skip" id="c13TourSkip">skip the tour</button>';
+    if (skipAllowed(i)) inner += '<button type="button" class="c13-tour-skip" id="c13TourSkip">skip the tour</button>';
     card.innerHTML = inner;
 
     function place() {
@@ -180,8 +240,11 @@
         try { localStorage.setItem(STEP_KEY, '3'); } catch (e) {}
         location.reload();
       });
-    } else if (i === 5) {
-      go.addEventListener('click', showEnding);
+    } else if (i === N) {
+      go.addEventListener('click', function () {
+        if (cfg.main) showEnding();
+        else teardown(true);
+      });
     } else {
       go.addEventListener('click', function () { showBeat(i + 1); });
     }
@@ -214,6 +277,7 @@
   }
 
   function startAt(step) {
+    if (!cfg.main) { showBeat(step); return; }
     var tries = 0;
     (function waitReady() {
       var ready = document.getElementById('gkDayread')
@@ -231,14 +295,17 @@
   var prof = getProfile();
   if (!forced) {
     if (seen()) { addHelpBtn(); return; }
-    if (prof && prof.date) { markSeen(); addHelpBtn(); return; }
+    // only the MAIN tour is auto-skipped for devices that already hold a
+    // profile; the short page intros show once for everyone
+    if (cfg.main && prof && prof.date) { markSeen(); addHelpBtn(); return; }
   }
   var resume = 1;
-  try {
-    var s = parseInt(localStorage.getItem(STEP_KEY) || '1', 10);
-    if (s >= 1 && s <= 5) resume = s;
-  } catch (e) {}
-  // a resume past the capture only makes sense if the date actually landed
-  if (resume > 2 && !(prof && prof.date)) resume = 1;
+  if (cfg.main) {
+    try {
+      var s = parseInt(localStorage.getItem(STEP_KEY) || '1', 10);
+      if (s >= 1 && s <= N) resume = s;
+    } catch (e) {}
+    if (resume > 2 && !(prof && prof.date)) resume = 1;
+  }
   setTimeout(function () { startAt(resume); }, 500);
 })();
