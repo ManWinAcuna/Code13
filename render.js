@@ -76,10 +76,10 @@ function render() {
   setText('missing', r.missing);
   setText('twentyEightDay', r.twentyEightDay);
 
-  // Free users on profile.html get DECOY pinnacle data under the blur
-  // (see the c13ProfileGated block below) - the real values must never
-  // enter the DOM, or the blur is just a devtools speed bump.
-  if (typeof c13ProfileGated !== 'undefined' && c13ProfileGated) {
+  // Non-monthly users get DECOY pinnacle data under the blur (see the
+  // c13PinnaclesGated block below) - the real values must never enter
+  // the DOM, or the blur is just a devtools speed bump.
+  if (typeof c13PinnaclesGated !== 'undefined' && c13PinnaclesGated) {
     setText('pinnacle1', '3'); setText('pinnacle2', '7');
     setText('pinnacle3', '1'); setText('pinnacle4', '9');
     setText('pinnacle1Compound', '21'); setText('pinnacle2Compound', '16');
@@ -491,6 +491,12 @@ if (pmReducedEl) {
 const c13ProfileGated = /profile/i.test(location.pathname)
   && typeof c13Entitled === 'function' && !c13Entitled();
 
+// Pinnacles are monthly-and-above on EVERY page that renders them (owner
+// call 2026-08-25, same doctrine as Hours) - weekly members get the same
+// blurred decoy tease as free users, and Calculator/Famous no longer
+// leak real pinnacles to anyone below monthly.
+const c13PinnaclesGated = typeof c13MonthlyPlus === 'function' && !c13MonthlyPlus();
+
 const pyReducedEl = document.getElementById('pyReduced');
 if (pyReducedEl) {
   pyReducedEl.title = 'Click for Personal Year Roadmap';
@@ -510,7 +516,7 @@ if (pyReducedEl) {
 // blur isn't just a devtools speed bump. The overlay's why-line is
 // personalized: the reader's real current chapter, veiled - the flip
 // age stays behind the paywall.
-if (c13ProfileGated) {
+if (c13PinnaclesGated) {
   const pinnaclesGrid = document.querySelector('.pinnacles-collapsible .pinnacles-grid');
   if (pinnaclesGrid) {
     // Bank 14 line as the base; the personalized real-chapter line below

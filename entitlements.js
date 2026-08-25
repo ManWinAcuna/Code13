@@ -53,17 +53,19 @@
     } catch (err) { return null; }
   };
 
-  // Personal Hours doctrine (owner call 2026-08-25): monthly and above.
-  // Weekly members keep every other Code13+ surface; Hours stay locked
-  // for them, on every page that renders hours. Reads the entitlement
-  // directly so no window-name collision can ever change the verdict.
-  window.c13HoursEntitled = function () {
+  // Monthly-and-above surfaces (owner calls 2026-08-25): Personal Hours
+  // and Pinnacles. Weekly members keep every other Code13+ surface; these
+  // stay locked for them, on every page that renders them. Reads the
+  // entitlement directly so no window-name collision can ever change the
+  // verdict.
+  window.c13MonthlyPlus = function () {
     try {
       const e = JSON.parse(localStorage.getItem(ENTITLE_KEY) || 'null');
       if (!e || !e.active) return false;
       return (e.tier || 'lifetime') !== 'weekly';
     } catch (err) { return false; }
   };
+  window.c13HoursEntitled = window.c13MonthlyPlus;
 
   window.c13MeterLeft = function (kind) {
     const m = METERS[kind];
