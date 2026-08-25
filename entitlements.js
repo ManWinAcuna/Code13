@@ -42,6 +42,29 @@
     } catch (err) { return false; }
   };
 
+  // Active PLAN tier ('weekly' | 'monthly' | 'lifetime' | 'dev'), or null.
+  // NOT named c13Tier: c13-copy.js owns window.c13Tier for COPY tiers
+  // (peak/mid/clash by score) and loads after this file - a same-name
+  // function here gets silently clobbered (caught live 2026-08-25).
+  window.c13PlanTier = function () {
+    try {
+      const e = JSON.parse(localStorage.getItem(ENTITLE_KEY) || 'null');
+      return e && e.active ? (e.tier || 'lifetime') : null;
+    } catch (err) { return null; }
+  };
+
+  // Personal Hours doctrine (owner call 2026-08-25): monthly and above.
+  // Weekly members keep every other Code13+ surface; Hours stay locked
+  // for them, on every page that renders hours. Reads the entitlement
+  // directly so no window-name collision can ever change the verdict.
+  window.c13HoursEntitled = function () {
+    try {
+      const e = JSON.parse(localStorage.getItem(ENTITLE_KEY) || 'null');
+      if (!e || !e.active) return false;
+      return (e.tier || 'lifetime') !== 'weekly';
+    } catch (err) { return false; }
+  };
+
   window.c13MeterLeft = function (kind) {
     const m = METERS[kind];
     if (!m) return 0;

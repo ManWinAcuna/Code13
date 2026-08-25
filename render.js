@@ -320,7 +320,12 @@ function renderPersonalHours() {
   // withheld) and the best/worst/money boxes tease the real answers
   // veiled to their leading digit. Nothing real enters the DOM beyond
   // what the reader already knows.
-  const c13HoursGated = typeof c13ProfileGated !== 'undefined' && c13ProfileGated;
+  // Hours are monthly-and-above on EVERY page that renders them (owner
+  // call 2026-08-25) - this also closes the old leak where Calculator
+  // showed real hours to free users because only profile.html was gated.
+  const c13HoursGated = typeof c13HoursEntitled === 'function'
+    ? !c13HoursEntitled()
+    : (typeof c13ProfileGated !== 'undefined' && c13ProfileGated);
   const [hh, mm] = timeInput.value.split(':').map(Number);
   const table = getPersonalHoursTable(hh, mm);
 

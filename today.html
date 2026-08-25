@@ -32,12 +32,12 @@
       </svg>
       <div class="gk-kws" id="gkKws"></div>
       <div class="gk-altar-label" id="gkDate"></div>
-      <button class="gk-altar-num gk-amped" id="gkNum" type="button">·</button>
+      <button class="gk-altar-num gk-amped" id="gkNum" type="button">Â·</button>
       <div class="gk-altar-sub" id="gkSub">Universal Day</div>
     </div>
     <div class="gk-orbits" id="gkOrbits"></div>
     <div class="gk-verdict" id="gkVerdict"></div>
-    <button class="gk-story-link" id="gkStoryLink" type="button" style="display:none">📖 the full story</button>
+    <button class="gk-story-link" id="gkStoryLink" type="button" style="display:none">ðŸ“– the full story</button>
     <div class="gk-crest" id="gkCrest">
       <div class="gk-notches" id="gkNotches"></div>
       <img src="logo.svg" alt="" class="gk-crest-img">
@@ -51,7 +51,7 @@
 <div class="gk-ghost" id="gkGhost"></div>
 <div class="gk-modal-backdrop" id="gkModalBackdrop">
   <div class="gk-modal" id="gkModal">
-    <button class="gk-modal-close" id="gkModalClose" type="button" aria-label="Close">×</button>
+    <button class="gk-modal-close" id="gkModalClose" type="button" aria-label="Close">Ã—</button>
     <div class="gk-modal-body" id="gkModalBody"></div>
   </div>
 </div>
@@ -68,7 +68,7 @@
 <script src="db-core.js?v=6"></script>
 <script src="firebase-loader.js"></script>
 <script src="banks/c13-bank-paid.js?v=1"></script>
-<script src="entitlements.js?v=8"></script>
+<script src="entitlements.js?v=10"></script>
 <script src="imprint-alignment.js?v=7"></script>
 <script src="compat-render.js?v=18"></script>
 <script src="banks/c13-bank-identity.js?v=2"></script>
@@ -81,7 +81,7 @@
 <script src="bottombar.js?v=9"></script>
 <script src="update-check.js?v=4"></script>
 <script>
-/* THE TODAY PAGE v3 — the daily sanctum (Boost13 2026-08-05, 16 answers).
+/* THE TODAY PAGE v3 â€” the daily sanctum (Boost13 2026-08-05, 16 answers).
    Ring draws first, the number blooms inside its alignment arc. The day
    speaks in the realist's voice. Tap = strike open the meaning. Hold = a
    ghost of tomorrow. The horse earns regalia and celebrates milestones. */
@@ -112,8 +112,8 @@
 
   /* ------------------------------ the owner's number character table ----- */
   var MEAN = {
-    1:  { kw: ['initiate', 'will', 'alone'],      move: 'Start things. Lead, don’t follow.' },
-    2:  { kw: ['feeling', 'pairs', 'patience'],   move: 'Cooperate, don’t push.' },
+    1:  { kw: ['initiate', 'will', 'alone'],      move: 'Start things. Lead, donâ€™t follow.' },
+    2:  { kw: ['feeling', 'pairs', 'patience'],   move: 'Cooperate, donâ€™t push.' },
     3:  { kw: ['voice', 'play', 'scatter'],       move: 'Express, but finish what you open.' },
     4:  { kw: ['structure', 'work', 'slow'],      move: 'Build. No shortcuts today.' },
     5:  { kw: ['restless', 'motion', 'risk'],     move: 'Move fast, commit to nothing long.' },
@@ -127,7 +127,7 @@
     28: { kw: ['radiant', 'command', 'gold'],     move: 'Bullish sun. Press your advantage.' },
     33: { kw: ['teacher', 'heart', 'lift'],       move: 'Give. What you teach returns.' }
   };
-  function meanOf(n) { return MEAN[n] || { kw: ['—', '—', '—'], move: '' }; }
+  function meanOf(n) { return MEAN[n] || { kw: ['â€”', 'â€”', 'â€”'], move: '' }; }
 
   /* ------------------------------------------------- profile + engines --- */
   var me = null, meTime = null, r = null;
@@ -248,10 +248,10 @@
         if (doSec === f13.uDayRoot && dayPair13) doSec = dayPair13.todayRoot;
         if (dontSec === f13.uDayRoot && dayPair13) dontSec = dayPair13.todayRoot;
         var acts = [];
-        c13ActionLines(f13.uDayRoot, 'do', 1, ':lead').forEach(function (l) { acts.push({ kind: 'do', icon: '✅', line: 'Do: ' + l }); });
-        if (doSec && doSec !== f13.uDayRoot) c13ActionLines(doSec, 'do', 1, ':sec').forEach(function (l) { acts.push({ kind: 'do', icon: '✅', line: 'Do: ' + l }); });
-        c13ActionLines(f13.uDayRoot, 'dont', 1, ':lead').forEach(function (l) { acts.push({ kind: 'dont', icon: '🚫', line: "Don't: " + l }); });
-        if (dontSec && dontSec !== f13.uDayRoot) c13ActionLines(dontSec, 'dont', 1, ':sec').forEach(function (l) { acts.push({ kind: 'dont', icon: '🚫', line: "Don't: " + l }); });
+        c13ActionLines(f13.uDayRoot, 'do', 1, ':lead').forEach(function (l) { acts.push({ kind: 'do', icon: 'âœ…', line: 'Do: ' + l }); });
+        if (doSec && doSec !== f13.uDayRoot) c13ActionLines(doSec, 'do', 1, ':sec').forEach(function (l) { acts.push({ kind: 'do', icon: 'âœ…', line: 'Do: ' + l }); });
+        c13ActionLines(f13.uDayRoot, 'dont', 1, ':lead').forEach(function (l) { acts.push({ kind: 'dont', icon: 'ðŸš«', line: "Don't: " + l }); });
+        if (dontSec && dontSec !== f13.uDayRoot) c13ActionLines(dontSec, 'dont', 1, ':sec').forEach(function (l) { acts.push({ kind: 'dont', icon: 'ðŸš«', line: "Don't: " + l }); });
         if (acts.length) wholeStory.actionables = acts.concat(wholeStory.watchItems || []);
       }
     } catch (e) {}
@@ -275,7 +275,7 @@
     } catch (e) {}
   }, 2500);
   /* Verbatim copies of render.js personalHourScore / findBestFinancialHour
-     (render.js can't load here — its page wiring expects the calculator DOM).
+     (render.js can't load here â€” its page wiring expects the calculator DOM).
      Table shape comes from numerology.js getPersonalHoursTable. */
   function personalHourScore(table, row) {
     var signScore = row.sign === table.ownSign ? 100 : vietnameseCompat(table.ownSign, row.sign);
@@ -317,7 +317,9 @@
   // reader's real best hour, veiled to its leading number (Boost13 copy
   // spec: their own data sells harder than any sentence).
   var hoursLocked = false, lockedHourHint = '', lockedFinHint = '';
-  if (rankedHours && !(window.c13Entitled && c13Entitled())) {
+  // Hours are monthly-and-above (owner call 2026-08-25): weekly members
+  // see the same veiled tease as free users here.
+  if (rankedHours && !(window.c13HoursEntitled && c13HoursEntitled())) {
     hoursLocked = true;
     var hintMatch = rankedHours[0].row.label.match(/^\d+/);
     lockedHourHint = hintMatch ? hintMatch[0] : '';
@@ -347,8 +349,8 @@
   var kws = meanOf(ud).kw;
   try {
     var b02e = window.C13B && C13B.bank02 && C13B.bank02[ud];
-    if (b02e && b02e.tags && b02e.tags.indexOf('·') !== -1) {
-      var tagKws = b02e.tags.toLowerCase().split('·').map(function (t) { return t.trim(); }).filter(Boolean);
+    if (b02e && b02e.tags && b02e.tags.indexOf('Â·') !== -1) {
+      var tagKws = b02e.tags.toLowerCase().split('Â·').map(function (t) { return t.trim(); }).filter(Boolean);
       if (tagKws.length >= 3) kws = tagKws.slice(0, 3);
     }
   } catch (e) {}
@@ -364,8 +366,8 @@
   var FACES = [
     { key: 'ud', label: 'Universal Day', val: function () { return udDisplay; }, classVal: function () { return ud; }, glyph: true },
     { key: 'de', label: 'Day Energy', val: function () { return de; }, glyph: true },
-    { key: 'an', label: (animal || '') + ' Day', val: function () { return animalEmoji || '·'; }, glyph: false },
-    { key: 'pd', label: 'Personal Day', val: function () { return pd != null ? pd : '·'; }, glyph: true }
+    { key: 'an', label: (animal || '') + ' Day', val: function () { return animalEmoji || 'Â·'; }, glyph: false },
+    { key: 'pd', label: 'Personal Day', val: function () { return pd != null ? pd : 'Â·'; }, glyph: true }
   ].filter(function (f) { return f.key !== 'an' || animal; });
   var faceIdx = 0;
   var numEl = document.getElementById('gkNum');
@@ -427,7 +429,7 @@
       s.push(compat >= 85 ? '<b>' + compat + '% aligned. The day bows to you.</b>'
         : compat >= 70 ? '<b>' + compat + '% aligned.</b> The day favors you.'
         : compat >= 50 ? '<b>' + compat + '% aligned.</b> Workable. Pick your spots.'
-        : compat >= 40 ? '<b>' + compat + '% aligned.</b> Neutral tape. Don’t force it.'
+        : compat >= 40 ? '<b>' + compat + '% aligned.</b> Neutral tape. Donâ€™t force it.'
         : '<b>' + compat + '% aligned.</b> Not your day. Size down, observe.');
     }
     s.push(m.move);
@@ -467,9 +469,9 @@
   /* --------------------------------------- the strike & the meaning card -- */
   function cardHtml() {
     var m = meanOf(ud);
-    var h = '<div class="gk-card-title">' + ud + (lifePath ? ' × lifepath ' + lifePathDisplayText(lifePath) : '') + '</div>';
-    h += '<div class="gk-card-body">' + m.kw.join(' · ') + '. ' + m.move;
-    if (lifePath === 9) h += ' For a 9, a ' + ud + ' day ' + (ud === 5 || ud === 9 ? 'moves WITH you. Adapt freely.' : ud === 7 || ud === 11 ? 'pulls against your flow. Don’t chase clarity, wait for it.' : ud === 8 || ud === 28 ? 'pays your completion energy in full. Close things and collect.' : 'asks you to bend your flow to its shape.');
+    var h = '<div class="gk-card-title">' + ud + (lifePath ? ' Ã— lifepath ' + lifePathDisplayText(lifePath) : '') + '</div>';
+    h += '<div class="gk-card-body">' + m.kw.join(' Â· ') + '. ' + m.move;
+    if (lifePath === 9) h += ' For a 9, a ' + ud + ' day ' + (ud === 5 || ud === 9 ? 'moves WITH you. Adapt freely.' : ud === 7 || ud === 11 ? 'pulls against your flow. Donâ€™t chase clarity, wait for it.' : ud === 8 || ud === 28 ? 'pays your completion energy in full. Close things and collect.' : 'asks you to bend your flow to its shape.');
     h += '</div>';
     if (hoursTable) {
       var carriers = [];
@@ -477,7 +479,7 @@
         var row = hoursTable.rows[q];
         if (row.digitalReduced === ud || (hoursTable.isPM && row.militaryReduced === ud)) carriers.push(row.label);
       }
-      if (carriers.length) h += '<div class="gk-card-hours">Hours carrying the ' + ud + ': <b>' + carriers.join(' · ') + '</b></div>';
+      if (carriers.length) h += '<div class="gk-card-hours">Hours carrying the ' + ud + ': <b>' + carriers.join(' Â· ') + '</b></div>';
     }
     if (wholeStory) {
       h += '<div class="gk-card-story"><div class="gk-card-story-label">Today Decoded</div>';
@@ -492,14 +494,14 @@
       // Icon-led custom tab chips, not raw emoji or a bold "Do:"/"Don't:"
       // label word. Do/Don't/Watch all flow together in one list.
       if (wholeStory.actionables && wholeStory.actionables.length) {
-        var tabGlyph = { do: '✓', dont: '✕', watch: '!' };
+        var tabGlyph = { do: 'âœ“', dont: 'âœ•', watch: '!' };
         h += '<div class="story-action-list">' +
           wholeStory.actionables.map(function (a) {
             var text = a.line.replace(/^(Do|Don't):\s*/, '');
             text = text.charAt(0).toUpperCase() + text.slice(1);
             if (!/[.!?]$/.test(text)) text += '.';
             return '<div class="story-action-row ' + a.kind + '">' +
-              '<span class="story-action-tab">' + (tabGlyph[a.kind] || '·') + '</span>' +
+              '<span class="story-action-tab">' + (tabGlyph[a.kind] || 'Â·') + '</span>' +
               '<span class="story-action-text">' + text + '</span></div>';
           }).join('') + '</div>';
       }
@@ -508,7 +510,7 @@
       // with the day itself (Universal Day/Energy doctrine: "the main
       // ingredient of the soup, not all").
       if (wholeStory.openText) {
-        h += '<div class="story-section"><div class="story-section-label">Today’s energy</div>' +
+        h += '<div class="story-section"><div class="story-section-label">Todayâ€™s energy</div>' +
           '<div class="story-section-body">' + wholeStory.openText + '</div></div>';
       }
 
@@ -522,19 +524,19 @@
         h += '<div class="story-col-body" data-col-body="more" hidden>';
         if (wholeStory.goodText) {
           h += '<div class="story-section"><div class="story-section-label good">' +
-            '<span class="story-glyph good">▲</span>What’s good</div>' +
+            '<span class="story-glyph good">â–²</span>Whatâ€™s good</div>' +
             '<div class="story-section-body">' + wholeStory.goodText + '</div></div>';
         }
         if (wholeStory.badText) {
           h += '<div class="story-section"><div class="story-section-label bad">' +
-            '<span class="story-glyph bad">▼</span>What could improve</div>' +
+            '<span class="story-glyph bad">â–¼</span>What could improve</div>' +
             '<div class="story-section-body">' + wholeStory.badText + '</div></div>';
         }
         // Always present (2026-08-12): the day-energy's shadow side, split
         // out of the opener - a good day's popup was all-positive before.
         if (wholeStory.watchText) {
           h += '<div class="story-section"><div class="story-section-label bad">' +
-            '<span class="story-glyph bad">▼</span>What to watch for</div>' +
+            '<span class="story-glyph bad">â–¼</span>What to watch for</div>' +
             '<div class="story-section-body">' + wholeStory.watchText + '</div></div>';
         }
         // The cycle story (Banks 10/11/12): chapter, emphasis, immediate
@@ -597,7 +599,7 @@
     var compatT = null;
     if (me) { try { compatT = computeCompatibility(me, tm).finalScore; } catch (e) {} }
     ghost.innerHTML = '<div class="gk-ghost-num">' + udT + '</div>' +
-      '<div class="gk-ghost-line">tomorrow' + (compatT != null ? ' · ' + compatT + '% aligned' : '') + '</div>';
+      '<div class="gk-ghost-line">tomorrow' + (compatT != null ? ' Â· ' + compatT + '% aligned' : '') + '</div>';
     ghost.classList.add('on');
   }
   function hideGhost() { clearTimeout(pressTimer); ghost.classList.remove('on'); }
@@ -642,7 +644,7 @@
      this hour against the day's number. Words stay out of the way. */
   var dayHtml = '<div class="gk-dr-title">The Day</div>';
   // NOTE: hourFrac/tierOf are `var`-assigned (not `function` declarations) on
-  // purpose — this whole section spans two separate `if (rankedHours)` blocks
+  // purpose â€” this whole section spans two separate `if (rankedHours)` blocks
   // below, and in strict mode a block-scoped `function` declared in the first
   // block is invisible in the second (silent ReferenceError on tap, no modal).
   var hourFrac = function (label) {
@@ -669,10 +671,10 @@
       else if (curTier === 'bad') document.documentElement.classList.add('gk-hour-cold');
     }
     // PM birthdays run TWO personal-hour numbers at once (a digital-clock
-    // count and a military-clock count) — show both wherever the hour's
+    // count and a military-clock count) â€” show both wherever the hour's
     // number appears, not just the digital one.
     var isPM = hoursTable.isPM;
-    var numOf = function (row) { return isPM ? row.digitalReduced + '·' + row.militaryReduced : String(row.digitalReduced); };
+    var numOf = function (row) { return isPM ? row.digitalReduced + 'Â·' + row.militaryReduced : String(row.digitalReduced); };
     if (curPos >= 0) {
       var cur = chrono[curPos], curSc = scoreByIndex[cur.index];
       var nxt = chrono[(curPos + 1) % 24], nxtSc = scoreByIndex[nxt.index];
@@ -687,10 +689,10 @@
         '<span class="gk-nc-num' + (isPM ? ' gk-nc-num-dual' : '') + '">' + numOf(cur) + '</span>' +
         '<div class="gk-nc-mid">' +
           '<span class="gk-nc-clock" id="gkClock"></span>' +
-          '<span class="gk-nc-sub">hour ' + numOf(cur) + ' · until ' + nxt.label + '</span>' +
+          '<span class="gk-nc-sub">hour ' + numOf(cur) + ' Â· until ' + nxt.label + '</span>' +
         '</div>' +
         '<div class="gk-nc-side">' +
-          (vsOk != null ? '<span class="gk-nc-vs ' + (vsOk ? 'ok' : 'bad') + '">day ' + ud + ' ' + (vsOk ? '✓' : '✗') + '</span>' : '') +
+          (vsOk != null ? '<span class="gk-nc-vs ' + (vsOk ? 'ok' : 'bad') + '">day ' + ud + ' ' + (vsOk ? 'âœ“' : 'âœ—') + '</span>' : '') +
           '<span class="gk-nc-next">next <b>' + numOf(nxt) + '</b><i class="gk-dot gd-' + tierOf(nxtSc) + '"></i></span>' +
         '</div>' +
       '</div>';
@@ -713,10 +715,10 @@
     dayHtml += '<div class="gk-strip">' + segs +
       '<i class="gk-strip-cursor" id="gkStripCursor" style="left:' + cursorLeft + '%"></i></div>' +
       '<div class="gk-strip-ticks">' + ticks + '</div>' +
-      '<div class="gk-strip-legend"><span class="lg-good">● good</span><span class="lg-mid">● flat</span>' +
-      '<span class="lg-bad">● enemy</span>' +
-      (finHour ? '<span class="l-fin">● financial</span>' : '') + '</div>' +
-      '<div class="gk-hr-hint">tap for the full day →</div>';
+      '<div class="gk-strip-legend"><span class="lg-good">â— good</span><span class="lg-mid">â— flat</span>' +
+      '<span class="lg-bad">â— enemy</span>' +
+      (finHour ? '<span class="l-fin">â— financial</span>' : '') + '</div>' +
+      '<div class="gk-hr-hint">tap for the full day â†’</div>';
   } else if (hoursLocked) {
     dayHtml += c13LockHtml(
       'The Hours',
@@ -747,7 +749,7 @@
     }
     beat(); setInterval(beat, 1000);
 
-    // the full day, in hours — best-hour countdown lives inside this popup now
+    // the full day, in hours â€” best-hour countdown lives inside this popup now
     var bestLabel = rankedHours[0].row.label;
     function bestHourLine() {
       var t = new Date();
@@ -757,9 +759,9 @@
       var target = new Date();
       target.setHours(bh, parseInt(mm3[2], 10), 0, 0);
       var bestShown = window.c13HourRange ? c13HourRange(bestLabel) : bestLabel;
-      if (target <= t) return 'Best hour <b>' + bestShown + '</b> · ' + (t - target < 60 * 60000 ? '<b>now</b>' : 'passed for today');
+      if (target <= t) return 'Best hour <b>' + bestShown + '</b> Â· ' + (t - target < 60 * 60000 ? '<b>now</b>' : 'passed for today');
       var secs = Math.floor((target - t) / 1000);
-      return 'Best hour <b>' + bestShown + '</b> · in <b>' +
+      return 'Best hour <b>' + bestShown + '</b> Â· in <b>' +
         Math.floor(secs / 3600) + 'h ' + Math.floor((secs % 3600) / 60) + 'm ' + (secs % 60) + 's</b>';
     }
     function hoursModalHtml() {
@@ -801,7 +803,7 @@
     if (pick) {
       document.getElementById('gkAlignNext').innerHTML =
         'Next high-alignment day: <b>' + pick.d.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' }) +
-        ' · ' + pick.s + '%</b> · in <b>' + pick.in + ' day' + (pick.in === 1 ? '' : 's') + '</b>';
+        ' Â· ' + pick.s + '%</b> Â· in <b>' + pick.in + ' day' + (pick.in === 1 ? '' : 's') + '</b>';
     }
   }
 

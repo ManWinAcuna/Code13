@@ -239,7 +239,7 @@
         <button class="cta solid" id="joinBtn">Get Early Access</button>
       </div>
       <div class="join-msg" id="joinMsg"></div>
-      <div class="joined">✓ You're on the list. We'll contact you when Code13 launches.</div>
+      <div class="joined">âœ“ You're on the list. We'll contact you when Code13 launches.</div>
       <p class="join-sub">Sign up now so you're ready when Code13 releases and the 130 Founding Lifetime memberships open.</p>
     </div>
     <p class="fineprint">No payment today. Joining early access does not itself purchase Code13+ or guarantee a Lifetime spot. The $130 offer is available to the first 130 completed Lifetime purchases at launch.</p>
@@ -290,7 +290,7 @@
 
   <footer>
     <img src="logo.svg?v=5" alt="">
-    Code13 · 2026 · <a href="privacy.html">Privacy</a>
+    Code13 Â· 2026 Â· <a href="privacy.html">Privacy</a>
   </footer>
 
 </div>
@@ -363,7 +363,7 @@
     var value = email.value.trim();
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) { setMsg('Enter a valid email.', 'err'); return; }
     btn.disabled = true;
-    setMsg('Joining…');
+    setMsg('Joiningâ€¦');
     loadSdk()
       .then(function () {
         if (!window.firebase || String(firebase.app().options.projectId).indexOf('REPLACE_ME') !== -1) {
