@@ -12,13 +12,24 @@
    - Profile: Pinnacles + the Personal Year Roadmap paid; PY/PM/PD,
      Yearly Outlook stay free. Calculator and Astrology: fully free.
 
-   BILLING IS A STUB until the Play Store build exists: c13Buy() explains
-   purchases open at launch. The entitlement itself reads one localStorage
-   key so the real Play Billing/Firebase verification can swap in behind
-   c13Entitled() without touching any gate. Dev grant for testing:
+   BILLING (launch 2026-08-26): Stripe Payment Links per tier in PAY_LINKS
+   below - c13Buy opens the tier's checkout in a new tab. After a purchase
+   the OWNER attaches Code13+ to the buyer's account by hand (see the
+   grantSync block at the bottom for the exact console steps); signed-in
+   devices pick the grant up on the next page load. Tiers with no link yet
+   fall back to an "opens shortly" note. The entitlement itself stays one
+   localStorage key behind c13Entitled(), so real automated verification
+   (Play Billing / Stripe webhooks) can swap in later without touching any
+   gate. Dev grant for testing:
    localStorage.setItem('code13_plus', '{"active":true,"tier":"dev"}') */
 (function () {
   const ENTITLE_KEY = 'code13_plus';
+  // Stripe Payment Links, one per tier. Empty string = not purchasable yet.
+  const PAY_LINKS = {
+    weekly: '',
+    monthly: '',
+    lifetime: '',
+  };
   const METERS = {
     compat: { key: 'code13_meter_compat', limit: 31, noun: 'free readings' },
     famous: { key: 'code13_meter_famous', limit: 130, noun: 'free lookups' },
@@ -162,10 +173,22 @@
 
   window.c13Buy = function (tierId) {
     const note = document.getElementById('c13PaywallNote');
+    const link = PAY_LINKS[tierId];
+    if (!link) {
+      if (note) {
+        note.textContent = 'This plan opens shortly. Founding pricing is locked in.';
+        note.classList.add('on');
+      }
+      return;
+    }
+    const user = (window.firebase && firebase.auth && firebase.auth().currentUser) || null;
     if (note) {
-      note.textContent = 'Purchases open when Code13 reaches the Play Store. Founding pricing is locked in for launch.';
+      note.textContent = user
+        ? 'Checkout opened in a new tab. Pay with the same email as your Code13 account (' + user.email + ') and your access unlocks once the payment is confirmed.'
+        : 'Checkout opened in a new tab. Important: create your free Code13 account with the SAME email you pay with, so your purchase can be attached to it.';
       note.classList.add('on');
     }
+    window.open(link, '_blank', 'noopener');
   };
 
   window.c13ClosePaywall = function () {
@@ -344,4 +367,54 @@
   const style = document.createElement('style');
   style.textContent = css;
   document.head.appendChild(style);
+
+  /* ---- cloud entitlement grants (launch flow, 2026-08-25) --------------
+     After a Stripe purchase the OWNER attaches Code13+ to the buyer's
+     account by hand:
+       Firebase console -> Authentication -> Users -> find the buyer's
+       email -> copy their UID -> Firestore -> users -> {that UID} ->
+       Start collection "meta" -> document id "plus" ->
+       fields: active (boolean) true, tier (string) "lifetime".
+     Console writes bypass security rules; clients can only READ their own
+     doc (existing users/{uid} rule), so nothing new to publish. A signed
+     in device picks the grant up on the next page load and reloads once
+     to unlock. Deleting the doc revokes on next load the same way. The
+     SDK is never force-loaded: this only runs in browsers that have
+     signed in before (same condition firebase-loader auto-loads on). */
+  (function grantSync() {
+    let ever = null;
+    try { ever = localStorage.getItem('numerology_ever_signed_in'); } catch (err) {}
+    if (!ever) return;
+    let tries = 0;
+    (function waitForAuth() {
+      if (!(window.firebase && firebase.auth && firebase.firestore)) {
+        if (++tries < 200) setTimeout(waitForAuth, 150);
+        return;
+      }
+      firebase.auth().onAuthStateChanged(function (user) {
+        if (!user) return;
+        firebase.firestore().collection('users').doc(user.uid)
+          .collection('meta').doc('plus').get()
+          .then(function (snap) {
+            let local = null;
+            try { local = JSON.parse(localStorage.getItem(ENTITLE_KEY) || 'null'); } catch (err) {}
+            const granted = snap.exists && snap.data() && snap.data().active;
+            if (granted && !(local && local.active)) {
+              try {
+                localStorage.setItem(ENTITLE_KEY, JSON.stringify({
+                  active: true,
+                  tier: (snap.data() && snap.data().tier) || 'lifetime',
+                  src: 'cloud',
+                }));
+              } catch (err) {}
+              location.reload();
+            } else if (!granted && local && local.active && local.src === 'cloud') {
+              try { localStorage.removeItem(ENTITLE_KEY); } catch (err) {}
+              location.reload();
+            }
+          })
+          .catch(function () { /* offline or transient: keep current state */ });
+      });
+    })();
+  })();
 })();
