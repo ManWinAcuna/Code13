@@ -729,9 +729,13 @@
       'hours'
     );
   } else {
+    // Dead-end lines became buttons (owner call 2026-08-25): every
+    // "set your birthday" moment must hand the reader the next step.
     dayHtml += '<div class="gk-count">' + (me
-      ? 'Add your birth time in My Profile to unlock the hours.'
-      : 'The hours awaken once your birthday is set.') + '</div>';
+      ? 'Your hours are ready. They need your birth time.'
+      : 'Set your birth date to make today yours.') + '</div>'
+      + '<div style="text-align:center"><a class="gk-go-profile" href="profile.html">'
+      + (me ? 'Add my birth time' : 'Set my birth date') + '</a></div>';
   }
   dayHtml += '<div class="gk-count" id="gkAlignNext"></div>';
   document.getElementById('gkDayread').innerHTML = dayHtml;
@@ -810,5 +814,6 @@
 })();
 </script>
 <script src="godlike.js?v=2"></script>
+<script src="c13-tour.js?v=1"></script>
 </body>
 </html>
