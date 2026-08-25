@@ -132,10 +132,9 @@ function render() {
     }
   }
 
-  const energyFlow = computeEnergyFlow(birthDate, today);
-  const energyEl = document.getElementById('energyFlowScore');
-  energyEl.textContent = `${energyFlow.finalScore}%`;
-  energyEl.className = `box-value ${tierClass(energyFlow.finalScore)}`;
+  // Energy Flow category removed from Code13 (owner call 2026-08-25) -
+  // the engine's computeEnergyFlow stays untouched; c13-copy.js still
+  // reads it for the Today story's flow states.
 
   // Code13: the First Imprints section doesn't exist in this app's pages -
   // guarded so render() survives the missing element.
@@ -464,13 +463,6 @@ document.getElementById('compatTodayBox').addEventListener('click', () => {
   if (!lastBirthDate) return;
   const result = computeCompatibility(lastBirthDate, getToday());
   renderCompatHero(document.getElementById('compatModalBody'), result, 'You', 'Today', { compact: true, pillDateA: lastBirthDate, pillDateB: getToday() });
-  openModal();
-});
-
-document.getElementById('energyFlowBox').addEventListener('click', () => {
-  if (!lastBirthDate) return;
-  const result = computeEnergyFlow(lastBirthDate, getToday());
-  renderEnergyFlowResults(document.getElementById('compatModalBody'), result);
   openModal();
 });
 
