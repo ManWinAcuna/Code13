@@ -81,6 +81,14 @@
     font-weight: 700; letter-spacing: .1em; text-transform: uppercase; cursor: pointer;
     font-family: inherit; -webkit-tap-highlight-color: transparent; }
   .gate-install.show { display: flex; }
+
+  .gate-ios-steps { display: none; margin-top: 10px; padding: 14px 16px; text-align: left;
+    background: rgba(255,255,255,.03); border: 1px solid var(--border); border-radius: 14px; }
+  .gate-ios-steps.show { display: block; }
+  .gate-ios-steps ol { margin: 0; padding-left: 18px; font-size: 12.5px; line-height: 1.7; color: var(--text); }
+  .gate-ios-steps .gate-ios-icon { display: inline-flex; align-items: center; justify-content: center;
+    width: 16px; height: 16px; border: 1.4px solid var(--gold); border-radius: 3px; vertical-align: -3px;
+    font-size: 10px; color: var(--gold); margin: 0 1px; }
 </style>
 </head>
 <body>
@@ -100,6 +108,14 @@
     <div class="gate-divider">or</div>
     <button class="gate-skip" id="gateSkip" type="button">Continue without an account</button>
     <button class="gate-install" id="gateInstall" type="button">&#8681; Install App</button>
+    <button class="gate-install" id="gateInstallIos" type="button">&#8681; Add to Home Screen</button>
+    <div class="gate-ios-steps" id="gateIosSteps">
+      <ol>
+        <li>Tap the Share button <span class="gate-ios-icon">&#8593;</span> in Safari's toolbar.</li>
+        <li>Scroll down and tap "Add to Home Screen".</li>
+        <li>Tap "Add" in the top right.</li>
+      </ol>
+    </div>
   </div>
 </div>
 
@@ -191,6 +207,28 @@
   window.addEventListener('appinstalled', function () {
     installBtn.classList.remove('show');
   });
+
+  // iOS Safari has no beforeinstallprompt equivalent - Apple gives no API to
+  // trigger "Add to Home Screen" programmatically, on any browser, PWA or
+  // native. The button here reveals the manual steps instead. User,
+  // 2026-08-26: "same thing for safari on ios... tap and get prompted to
+  // add to homescreen" - closest honest equivalent given the platform limit.
+  // Excludes Chrome/Firefox/Edge-on-iOS (CriOS/FxiOS/EdgiOS) - those
+  // wrapper browsers don't offer "Add to Home Screen" in their share sheet
+  // at all, only Safari itself does.
+  var ua = navigator.userAgent;
+  var isIOS = /iPad|iPhone|iPod/.test(ua) && !window.MSStream;
+  var isOtherIOSBrowser = /CriOS|FxiOS|EdgiOS|OPiOS/.test(ua);
+  var isStandalone = navigator.standalone === true
+    || (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches);
+  if (isIOS && !isOtherIOSBrowser && !isStandalone) {
+    var iosBtn = document.getElementById('gateInstallIos');
+    var iosSteps = document.getElementById('gateIosSteps');
+    iosBtn.classList.add('show');
+    iosBtn.addEventListener('click', function () {
+      iosSteps.classList.toggle('show');
+    });
+  }
 
   var mode = 'signin';
   function setMode(m) {
