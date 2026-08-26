@@ -93,8 +93,47 @@
       localStorage.setItem(SEEN_KEY, '1');
       if (cfg.main) localStorage.removeItem(STEP_KEY);
     } catch (e) {}
+    // The main tour's seen-state also rides to the account (owner call
+    // 2026-08-26: "only give 1 walkthrough per account") - best-effort,
+    // never blocks the UI. Page intros stay device-local, unchanged.
+    if (cfg.main) {
+      try {
+        if (window.firebase && firebase.auth && firebase.auth().currentUser) {
+          firebase.firestore().collection('users').doc(firebase.auth().currentUser.uid)
+            .collection('meta').doc('tour').set({ mainSeen: true }, { merge: true }).catch(function () {});
+        }
+      } catch (e) {}
+    }
   }
   function getProfile() { try { return loadProfile(); } catch (e) { return null; } }
+
+  // Resolves true/false/null (null = no account to check, or check failed -
+  // caller should fall through to normal local-only behavior). Only called
+  // for the main tour, and only when this device has signed in before, so
+  // a fresh guest never pays a network wait to learn what it already knows.
+  function readAccountTourSeen() {
+    return new Promise(function (resolve) {
+      var everSignedIn = false;
+      try { everSignedIn = !!localStorage.getItem('numerology_ever_signed_in'); } catch (e) {}
+      if (!everSignedIn) { resolve(null); return; }
+      var tries = 0;
+      (function waitFb() {
+        if (window.firebase && firebase.auth && firebase.firestore) {
+          firebase.auth().onAuthStateChanged(function (user) {
+            if (!user) { resolve(null); return; }
+            firebase.firestore().collection('users').doc(user.uid)
+              .collection('meta').doc('tour').get()
+              .then(function (snap) { resolve(!!(snap.exists && snap.data() && snap.data().mainSeen)); })
+              .catch(function () { resolve(null); });
+          }, function () { resolve(null); });
+        } else if (++tries < 20) {
+          setTimeout(waitFb, 150);
+        } else {
+          resolve(null);
+        }
+      })();
+    });
+  }
 
   /* ------------------------------ css ------------------------------ */
   var css = `
@@ -293,19 +332,35 @@
 
   /* ----------------------------- boot ------------------------------ */
   var prof = getProfile();
+
+  function proceed() {
+    var resume = 1;
+    if (cfg.main) {
+      try {
+        var s = parseInt(localStorage.getItem(STEP_KEY) || '1', 10);
+        if (s >= 1 && s <= N) resume = s;
+      } catch (e) {}
+      if (resume > 2 && !(prof && prof.date)) resume = 1;
+    }
+    setTimeout(function () { startAt(resume); }, 500);
+  }
+
   if (!forced) {
     if (seen()) { addHelpBtn(); return; }
     // only the MAIN tour is auto-skipped for devices that already hold a
     // profile; the short page intros show once for everyone
     if (cfg.main && prof && prof.date) { markSeen(); addHelpBtn(); return; }
+    if (cfg.main) {
+      // Local storage doesn't know yet - ask the account before committing
+      // to show the tour, so signing in on a new/cleared device doesn't
+      // repeat it. Guests and accounts that have never signed in resolve
+      // this near-instantly (readAccountTourSeen short-circuits to null).
+      readAccountTourSeen().then(function (accountSeen) {
+        if (accountSeen === true) { markSeen(); addHelpBtn(); return; }
+        proceed();
+      });
+      return;
+    }
   }
-  var resume = 1;
-  if (cfg.main) {
-    try {
-      var s = parseInt(localStorage.getItem(STEP_KEY) || '1', 10);
-      if (s >= 1 && s <= N) resume = s;
-    } catch (e) {}
-    if (resume > 2 && !(prof && prof.date)) resume = 1;
-  }
-  setTimeout(function () { startAt(resume); }, 500);
+  proceed();
 })();

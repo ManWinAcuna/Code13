@@ -13,10 +13,204 @@
 <link rel="icon" href="favicon-64.png?v=3" sizes="64x64">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <title>Code13</title>
-<!-- App entry. The early-access landing (waitlist + founding offer copy)
-     is preserved at landing.html for a possible future iOS push. -->
-<script>window.location.replace('today.html');</script>
+<!-- The app's true front door (owner call 2026-08-26): every fresh visit
+     lands here first, not straight into Today. A remembered session (this
+     device signed in before, or chose "continue without an account")
+     skips straight through with no flash - see the boot script below.
+     Bookmarked/linked pages (today.html, profile.html, etc.) are NOT
+     gated - only this entry point is, matching how installed apps behave. -->
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root { --gold: #f5c542; --void: #000; --panel: #0d0c0a; --border: rgba(255,255,255,.09);
+    --text: #ece7dc; --muted: #77705f; --bad: #e5393f; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { background: var(--void); height: 100%; }
+  body { color: var(--text); font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased; }
+  body::before { content: ''; position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background: radial-gradient(ellipse 120% 55% at 50% -8%, rgba(245,197,66,.09), transparent 62%); }
+
+  .gate { position: relative; z-index: 1; min-height: 100dvh; display: flex;
+    align-items: center; justify-content: center; padding: 24px calc(env(safe-area-inset-right) + 22px)
+    calc(env(safe-area-inset-bottom) + 24px) calc(env(safe-area-inset-left) + 22px); }
+  .gate-card { width: 100%; max-width: 340px; text-align: center; opacity: 0;
+    transform: translateY(6px); transition: opacity .35s ease, transform .35s ease; }
+  .gate-card.ready { opacity: 1; transform: none; }
+
+  .gate-logo { width: 76px; height: 76px; filter: drop-shadow(0 0 22px rgba(245,197,66,.3)); }
+  .gate-word { margin-top: 12px; font-family: 'Cinzel', serif; font-weight: 700; font-size: 14px;
+    letter-spacing: .5em; text-indent: .5em; color: var(--gold); text-transform: uppercase; }
+
+  .gate-form { margin-top: 30px; display: flex; flex-direction: column; gap: 10px; }
+  .gate-form input { width: 100%; background: rgba(255,255,255,.05); border: 1px solid var(--border);
+    border-radius: 10px; color: var(--text); padding: 12px 14px; font-size: 16px;
+    font-family: inherit; color-scheme: dark; outline: none; }
+  .gate-form input::placeholder { color: var(--muted); }
+  .gate-form input:focus { border-color: rgba(245,197,66,.5); }
+  .gate-error { min-height: 15px; font-size: 12px; color: var(--bad); text-align: left; padding: 0 2px; }
+
+  .gate-btn { width: 100%; padding: 13px 0; border: none; border-radius: 999px;
+    background: linear-gradient(168deg, #ffdf7e, #e9b62e); color: #100c02; font-weight: 700;
+    font-size: 11px; letter-spacing: .2em; text-transform: uppercase; cursor: pointer;
+    font-family: inherit; -webkit-tap-highlight-color: transparent; }
+  .gate-btn:disabled { opacity: .6; }
+  .gate-toggle { margin-top: 4px; background: none; border: none; color: var(--muted);
+    font-size: 11.5px; letter-spacing: .03em; cursor: pointer; font-family: inherit;
+    -webkit-tap-highlight-color: transparent; }
+
+  .gate-divider { margin: 22px 0; display: flex; align-items: center; gap: 12px;
+    color: var(--muted); font-size: 9.5px; letter-spacing: .2em; text-transform: uppercase; }
+  .gate-divider::before, .gate-divider::after { content: ''; flex: 1; height: 1px;
+    background: var(--border); }
+
+  .gate-skip { display: block; width: 100%; padding: 12px 0; border: 1px solid var(--border);
+    border-radius: 999px; background: none; color: var(--text); font-size: 11px;
+    letter-spacing: .1em; cursor: pointer; font-family: inherit;
+    -webkit-tap-highlight-color: transparent; }
+</style>
 </head>
 <body>
+<div class="gate">
+  <div class="gate-card" id="gateCard">
+    <img src="logo.svg" alt="" class="gate-logo">
+    <div class="gate-word">Code13</div>
+
+    <div class="gate-form">
+      <input type="email" id="gateEmail" placeholder="Email" autocomplete="email" inputmode="email">
+      <input type="password" id="gatePassword" placeholder="Password" autocomplete="current-password">
+      <div class="gate-error" id="gateError"></div>
+      <button class="gate-btn" id="gateSubmit" type="button">Sign In</button>
+      <button class="gate-toggle" id="gateToggle" type="button">Need an account? Sign up</button>
+    </div>
+
+    <div class="gate-divider">or</div>
+    <button class="gate-skip" id="gateSkip" type="button">Continue without an account</button>
+  </div>
+</div>
+
+<script src="storage-scope.js?v=1"></script>
+<script>
+(function () {
+  var SKIP_KEY = 'c13_welcome_skip_v1';
+  var EVER_KEY = 'numerology_ever_signed_in';
+  var FB_SCRIPTS = [
+    'https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js',
+    'https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js',
+    'https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js',
+    'firebase-init.js',
+  ];
+
+  function go() { location.replace('today.html'); }
+  function loadScript(src) {
+    return new Promise(function (resolve, reject) {
+      var s = document.createElement('script');
+      s.src = src; s.onload = resolve; s.onerror = reject;
+      document.body.appendChild(s);
+    });
+  }
+  var fbLoadPromise = null;
+  function loadFirebase() {
+    if (window.firebase && firebase.auth) return Promise.resolve();
+    if (!fbLoadPromise) {
+      fbLoadPromise = FB_SCRIPTS.reduce(function (p, src) { return p.then(function () { return loadScript(src); }); }, Promise.resolve());
+    }
+    return fbLoadPromise;
+  }
+
+  var skipped = false;
+  try { skipped = localStorage.getItem(SKIP_KEY) === '1'; } catch (e) {}
+  if (skipped) { go(); return; }
+
+  function reveal() {
+    var card = document.getElementById('gateCard');
+    if (card) card.classList.add('ready');
+  }
+
+  // A device with no remembered sign-in history has nothing to check -
+  // show the form immediately rather than waiting on a network round trip
+  // that can only ever resolve to "not signed in" anyway.
+  var everSignedIn = false;
+  try { everSignedIn = !!localStorage.getItem(EVER_KEY); } catch (e) {}
+
+  if (!everSignedIn) {
+    reveal();
+  } else {
+    var settled = false;
+    function finish(user) {
+      if (settled) return;
+      settled = true;
+      if (user) go(); else reveal();
+    }
+    loadFirebase()
+      .then(function () { firebase.auth().onAuthStateChanged(finish, function () { finish(null); }); })
+      .catch(function () { finish(null); });
+    // A dead network must never leave the card blank forever.
+    setTimeout(function () { finish(null); }, 4000);
+  }
+
+  document.getElementById('gateSkip').addEventListener('click', function () {
+    try { localStorage.setItem(SKIP_KEY, '1'); } catch (e) {}
+    go();
+  });
+
+  var mode = 'signin';
+  function setMode(m) {
+    mode = m;
+    document.getElementById('gateSubmit').textContent = m === 'signup' ? 'Sign Up' : 'Sign In';
+    document.getElementById('gateToggle').textContent = m === 'signup'
+      ? 'Already have an account? Sign in' : 'Need an account? Sign up';
+    document.getElementById('gateError').textContent = '';
+  }
+  document.getElementById('gateToggle').addEventListener('click', function () {
+    setMode(mode === 'signin' ? 'signup' : 'signin');
+  });
+
+  var ERR = {
+    'auth/invalid-email': 'That email address looks invalid.',
+    'auth/user-not-found': 'No account with that email. Try signing up instead.',
+    'auth/wrong-password': 'Incorrect password.',
+    'auth/invalid-credential': 'Incorrect email or password.',
+    'auth/email-already-in-use': 'An account already exists with that email. Try signing in instead.',
+    'auth/weak-password': 'Password should be at least 6 characters.',
+  };
+
+  document.getElementById('gateSubmit').addEventListener('click', function () {
+    var email = document.getElementById('gateEmail').value.trim();
+    var pass = document.getElementById('gatePassword').value;
+    var errEl = document.getElementById('gateError');
+    var btn = document.getElementById('gateSubmit');
+    if (!email || !pass) { errEl.textContent = 'Enter both an email and a password.'; return; }
+    btn.disabled = true;
+    errEl.textContent = '';
+    var settled2 = false;
+    function fail(err) {
+      if (settled2) return;
+      settled2 = true;
+      btn.disabled = false;
+      errEl.textContent = ERR[err && err.code] || (err && err.message) || 'Something went wrong.';
+    }
+    loadFirebase()
+      .then(function () {
+        return mode === 'signup'
+          ? firebase.auth().createUserWithEmailAndPassword(email, pass)
+          : firebase.auth().signInWithEmailAndPassword(email, pass);
+      })
+      .then(function () {
+        if (settled2) return;
+        settled2 = true;
+        try { localStorage.setItem(EVER_KEY, '1'); } catch (e) {}
+        go();
+      })
+      .catch(fail);
+    setTimeout(function () {
+      fail({ message: "This is taking too long — your connection may be stuck. Try again." });
+    }, 15000);
+  });
+
+  document.getElementById('gatePassword').addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') document.getElementById('gateSubmit').click();
+  });
+})();
+</script>
 </body>
 </html>
