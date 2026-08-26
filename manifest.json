@@ -1,7 +1,7 @@
 {
   "name": "Code13 Numerology",
   "short_name": "Code13",
-  "start_url": "./today.html",
+  "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
   "background_color": "#000000",

@@ -220,9 +220,37 @@
     window.open(link, '_blank', 'noopener');
   };
 
+  // 2026-08-26, user: the paywall "doesn't lock everything around it" -
+  // scrolling inside it dragged the page behind it too. Plain
+  // `overflow:hidden` on body doesn't reliably stop that on iOS Safari
+  // (touch scroll still bleeds through); pinning body with a negative top
+  // offset is the standard fix, restored to the exact scroll position on
+  // close.
+  function c13LockBodyScroll() {
+    const y = window.scrollY;
+    document.body.dataset.c13ScrollY = String(y);
+    document.body.style.position = 'fixed';
+    document.body.style.top = `-${y}px`;
+    document.body.style.left = '0';
+    document.body.style.right = '0';
+    document.body.style.width = '100%';
+  }
+
+  function c13UnlockBodyScroll() {
+    const y = parseInt(document.body.dataset.c13ScrollY || '0', 10);
+    document.body.style.position = '';
+    document.body.style.top = '';
+    document.body.style.left = '';
+    document.body.style.right = '';
+    document.body.style.width = '';
+    delete document.body.dataset.c13ScrollY;
+    window.scrollTo(0, y);
+  }
+
   window.c13ClosePaywall = function () {
     const el = document.getElementById('c13Paywall');
     if (el) el.remove();
+    c13UnlockBodyScroll();
   };
 
   // Fallback bodies only (pre-Bank-14 copy) - used when banks/c13-bank-
@@ -315,6 +343,7 @@
         <div class="c13-pw-fine">${fine}</div>
       </div>`;
     document.body.appendChild(wrap);
+    c13LockBodyScroll();
   };
 
   const css = `

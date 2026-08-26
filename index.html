@@ -18,7 +18,14 @@
      device signed in before, or chose "continue without an account")
      skips straight through with no flash - see the boot script below.
      Bookmarked/linked pages (today.html, profile.html, etc.) are NOT
-     gated - only this entry point is, matching how installed apps behave. -->
+     gated - only this entry point is. manifest.json's start_url also
+     points here (2026-08-26 fix - it originally still pointed at
+     today.html, so the installed home-screen app skipped the gate
+     entirely - user: "its not going straight to the login screen"), so a
+     launch from the installed icon goes through this same door. An
+     ALREADY-installed icon captured the old start_url at add time and
+     needs to be deleted and re-added to pick this up - same caveat as the
+     domain migration. -->
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
   :root { --gold: #f5c542; --void: #000; --panel: #0d0c0a; --border: rgba(255,255,255,.09);
