@@ -14,18 +14,21 @@
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <title>Code13</title>
 <!-- The app's true front door (owner call 2026-08-26): every fresh visit
-     lands here first, not straight into Today. A remembered session (this
-     device signed in before, or chose "continue without an account")
-     skips straight through with no flash - see the boot script below.
-     Bookmarked/linked pages (today.html, profile.html, etc.) are NOT
-     gated - only this entry point is. manifest.json's start_url also
+     lands here first, not straight into Today. A remembered signed-in
+     session skips straight through with no flash - see the boot script
+     below. Bookmarked/linked pages (today.html, profile.html, etc.) are
+     NOT gated - only this entry point is. manifest.json's start_url also
      points here (2026-08-26 fix - it originally still pointed at
      today.html, so the installed home-screen app skipped the gate
      entirely - user: "its not going straight to the login screen"), so a
      launch from the installed icon goes through this same door. An
      ALREADY-installed icon captured the old start_url at add time and
      needs to be deleted and re-added to pick this up - same caveat as the
-     domain migration. -->
+     domain migration.
+     2026-08-26: "Continue without an account" removed - owner call, "we
+     want to encourage people into signing up... make it so they need an
+     account to access." Scoped to just this gate (existing behavior) -
+     a bookmarked/linked page still works without an account, unchanged. -->
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
   :root { --gold: #f5c542; --void: #000; --panel: #0d0c0a; --border: rgba(255,255,255,.09);
@@ -65,18 +68,8 @@
     font-size: 11.5px; letter-spacing: .03em; cursor: pointer; font-family: inherit;
     -webkit-tap-highlight-color: transparent; }
 
-  .gate-divider { margin: 22px 0; display: flex; align-items: center; gap: 12px;
-    color: var(--muted); font-size: 9.5px; letter-spacing: .2em; text-transform: uppercase; }
-  .gate-divider::before, .gate-divider::after { content: ''; flex: 1; height: 1px;
-    background: var(--border); }
-
-  .gate-skip { display: block; width: 100%; padding: 12px 0; border: 1px solid var(--border);
-    border-radius: 999px; background: none; color: var(--text); font-size: 11px;
-    letter-spacing: .1em; cursor: pointer; font-family: inherit;
-    -webkit-tap-highlight-color: transparent; }
-
   .gate-install { display: none; align-items: center; justify-content: center; gap: 8px;
-    width: 100%; margin-top: 12px; padding: 12px 0; border: 1px solid rgba(245,197,66,.3);
+    width: 100%; margin-top: 22px; padding: 12px 0; border: 1px solid rgba(245,197,66,.3);
     border-radius: 999px; background: rgba(245,197,66,.06); color: var(--gold); font-size: 11px;
     font-weight: 700; letter-spacing: .1em; text-transform: uppercase; cursor: pointer;
     font-family: inherit; -webkit-tap-highlight-color: transparent; }
@@ -105,8 +98,6 @@
       <button class="gate-toggle" id="gateToggle" type="button">Need an account? Sign up</button>
     </div>
 
-    <div class="gate-divider">or</div>
-    <button class="gate-skip" id="gateSkip" type="button">Continue without an account</button>
     <button class="gate-install" id="gateInstall" type="button">&#8681; Install App</button>
     <button class="gate-install" id="gateInstallIos" type="button">&#8681; Add to Home Screen</button>
     <div class="gate-ios-steps" id="gateIosSteps">
@@ -122,7 +113,6 @@
 <script src="storage-scope.js?v=1"></script>
 <script>
 (function () {
-  var SKIP_KEY = 'c13_welcome_skip_v1';
   var EVER_KEY = 'numerology_ever_signed_in';
   var FB_SCRIPTS = [
     'https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js',
@@ -147,10 +137,6 @@
     }
     return fbLoadPromise;
   }
-
-  var skipped = false;
-  try { skipped = localStorage.getItem(SKIP_KEY) === '1'; } catch (e) {}
-  if (skipped) { go(); return; }
 
   function reveal() {
     var card = document.getElementById('gateCard');
@@ -178,11 +164,6 @@
     // A dead network must never leave the card blank forever.
     setTimeout(function () { finish(null); }, 4000);
   }
-
-  document.getElementById('gateSkip').addEventListener('click', function () {
-    try { localStorage.setItem(SKIP_KEY, '1'); } catch (e) {}
-    go();
-  });
 
   // Android/Chrome install button - beforeinstallprompt only fires when the
   // browser has decided the PWA is genuinely installable (valid manifest +

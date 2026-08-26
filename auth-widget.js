@@ -71,15 +71,12 @@
     if (user) {
       if (confirm(`Signed in as ${user.email}. Sign out?`)) {
         // 2026-08-26, user: "if you sign out it should take you back to the
-        // login page." Also clears the gate's own fast-path flags - a stale
-        // skip/ever-signed-in flag would otherwise bounce a just-signed-out
-        // user straight back past the login form the moment index.html
-        // loads (see its boot script).
+        // login page." Also clears the gate's own ever-signed-in fast-path
+        // flag - stale, it would otherwise bounce a just-signed-out user
+        // straight back past the login form the moment index.html loads
+        // (see its boot script).
         firebase.auth().signOut().then(() => {
-          try {
-            localStorage.removeItem('c13_welcome_skip_v1');
-            localStorage.removeItem('numerology_ever_signed_in');
-          } catch (e) {}
+          try { localStorage.removeItem('numerology_ever_signed_in'); } catch (e) {}
           location.href = 'index.html';
         });
       }

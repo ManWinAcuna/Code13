@@ -18,7 +18,7 @@
     'https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js',
     'https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js',
     'firebase-init.js',
-    'auth-widget.js?v=2',
+    'auth-widget.js?v=3',
   ];
 
   const EVER_SIGNED_IN_KEY = 'numerology_ever_signed_in';
