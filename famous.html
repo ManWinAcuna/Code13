@@ -13,7 +13,7 @@
 <link rel="icon" href="favicon-64.png?v=3" sizes="64x64">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <title>Famous Lookup</title>
-<link rel="stylesheet" href="style.css?v=3">
+<link rel="stylesheet" href="style.css?v=5">
 <link rel="stylesheet" href="godlike.css?v=44">
 </head>
 <body>
@@ -47,9 +47,15 @@
       <div class="famous-status" id="famousStatus"></div>
       <div class="famous-disclaimer" style="font-size:10px;color:var(--muted,#77705f);margin-top:4px;max-width:240px;line-height:1.5">Dates pull from public sources and can occasionally be wrong.</div>
     </div>
-    <div class="box bday-box">
-      <label for="bday">BDay</label>
-      <input type="text" id="bday" inputmode="numeric" placeholder="MM/DD/YYYY" maxlength="10" autocomplete="off">
+    <div class="topbar-right">
+      <div class="box photo-box" id="famousPhotoBox">
+        <span class="photo-box-placeholder" id="famousPhotoPlaceholder">🖼</span>
+        <img id="famousPhotoImg" alt="" style="display:none">
+      </div>
+      <div class="box bday-box">
+        <label for="bday">BDay</label>
+        <input type="text" id="bday" inputmode="numeric" placeholder="MM/DD/YYYY" maxlength="10" autocomplete="off">
+      </div>
     </div>
   </div>
 
@@ -254,21 +260,21 @@
 <script src="compat-data.js"></script>
 <script src="overrides-engine.js?v=3"></script>
 <script src="compat-engine.js?v=4"></script>
-<script src="compound-meanings.js?v=19"></script>
+<script src="compound-meanings.js?v=20"></script>
 <script src="big-store.js"></script>
-<script src="db-core.js?v=6"></script>
+<script src="db-core.js?v=7"></script>
 <script src="firebase-loader.js"></script>
 <script src="planet-guide.js?v=1"></script>
 <script src="banks/c13-bank-paid.js?v=1"></script>
 <script src="entitlements.js?v=12"></script>
 <script src="imprint-alignment.js?v=7"></script>
-<script src="compat-render.js?v=18"></script>
+<script src="compat-render.js?v=19"></script>
 <script src="banks/c13-bank-identity.js?v=2"></script>
 <script src="banks/c13-bank-viet.js?v=2"></script>
 <script src="banks/c13-bank-western.js?v=2"></script>
-<script src="c13-copy.js?v=6"></script>
+<script src="c13-copy.js?v=7"></script>
 <script src="render.js?v=31"></script>
-<script src="famous.js?v=2"></script>
+<script src="famous.js?v=3"></script>
 <script src="godlike.js?v=2"></script>
 <script src="c13-tour.js?v=3"></script>
 </body>

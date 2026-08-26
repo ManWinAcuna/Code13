@@ -426,6 +426,7 @@
     const paragraphs = [];
     const seenDedupe = {};
     const seenPlanetSigns = {};
+    let planetParaIndex = null;
     let prevRegister = null;
     items.forEach((it) => {
       if (seenDedupe[it.dedupeKey] !== undefined) {
@@ -434,10 +435,47 @@
         return;
       }
       seenDedupe[it.dedupeKey] = paragraphs.length;
+
+      // The four natal placements (Sun/Saturn/Jupiter/Venus) fold into ONE
+      // paragraph instead of four separate boxes - user, 2026-08-26:
+      // "consolidate them all into one." Only the first planet pays for a
+      // connector/dedupe slot; the rest append onto its light/shadow.
+      if (it.p.kind === 'planet') {
+        const roleLine = 'Your ' + it.p.planet + ' sits in ' + it.p.key + '.';
+        const prior = seenPlanetSigns[it.p.key];
+        const depth = it.p.depth || 'planet-lean';
+        let pieceLight, pieceShadow;
+        if (prior) {
+          pieceLight = roleLine + ' The same ' + it.p.key + ' current your ' + prior + ' already carries.';
+          pieceShadow = null;
+        } else if (depth === 'planet-full') {
+          pieceLight = roleLine + ' ' + it.entry.light;
+          pieceShadow = it.entry.shadow;
+        } else {
+          pieceLight = roleLine + ' ' + it.entry.light;
+          pieceShadow = null;
+        }
+        if (!prior) seenPlanetSigns[it.p.key] = it.p.planet;
+
+        if (planetParaIndex === null) {
+          const connector = paragraphs.length > 0 && typeof nextConnector === 'function' && typeof registerRelation === 'function'
+            ? nextConnector(registerRelation(prevRegister, it.register))
+            : null;
+          planetParaIndex = paragraphs.length;
+          paragraphs.push({ connector, light: pieceLight, shadow: pieceShadow, extra: null, detail: null });
+        } else {
+          const para = paragraphs[planetParaIndex];
+          para.light = para.light ? para.light + ' ' + pieceLight : pieceLight;
+          if (pieceShadow) para.shadow = para.shadow ? para.shadow + ' ' + pieceShadow : pieceShadow;
+        }
+        prevRegister = it.register;
+        return;
+      }
+
       const connector = paragraphs.length > 0 && typeof nextConnector === 'function' && typeof registerRelation === 'function'
         ? nextConnector(registerRelation(prevRegister, it.register))
         : null;
-      const depth = it.p.depth || (it.p.kind === 'planet' ? 'planet-lean' : 'std');
+      const depth = it.p.depth || 'std';
       // Detail lines come ONLY from the entry's leftover pool (`extra`) and
       // its scene - never from characteristics (popup bullets) or deep (the
       // zodiac popup's intro line), so no line can appear in both a tap
@@ -445,18 +483,7 @@
       // ("The field medic: care is practical..."), so they join as-is.
       const detailPool = (it.entry.extra || []).concat(it.entry.scene ? [it.entry.scene] : []);
       let para = null;
-      if (it.p.kind === 'planet') {
-        const roleLine = 'Your ' + it.p.planet + ' sits in ' + it.p.key + '.';
-        const prior = seenPlanetSigns[it.p.key];
-        if (prior) {
-          para = { connector, light: roleLine + ' The same ' + it.p.key + ' current your ' + prior + ' already carries.', shadow: null, extra: null, detail: null };
-        } else if (depth === 'planet-full') {
-          para = { connector, light: roleLine + ' ' + it.entry.light, shadow: it.entry.shadow, extra: null, detail: null };
-        } else {
-          para = { connector, light: roleLine + ' ' + it.entry.light, shadow: null, extra: null, detail: null };
-        }
-        if (!prior) seenPlanetSigns[it.p.key] = it.p.planet;
-      } else if (depth === 'full') {
+      if (depth === 'full') {
         para = { connector, light: it.entry.light, shadow: it.entry.shadow, extra: null, detail: pickN('gr:d:' + it.dedupeKey, detailPool, 2).join(' ') || null };
       } else if (depth === 'lean') {
         para = { connector, light: it.entry.light, shadow: it.entry.shadow, extra: null, detail: null };

@@ -236,6 +236,22 @@ function lookupLogoImageUrl(name) {
   return fetchWikidataIdWithTitle(name).then((hit) => (hit ? fetchLogoImageUrl(hit.qid) : null));
 }
 
+// Famous Lookup's photo pill: P18 (image) is Wikidata's general-purpose
+// portrait/photo/depiction property - set on people, companies, places,
+// works, almost anything with a Commons image, unlike P154 (logo) which
+// is brand-specific. Same Special:FilePath trick as fetchLogoImageUrl - the
+// filename resolves straight to a usable <img src>, no second round-trip.
+// Returns null (not a placeholder) when the entity has no P18 claim - the
+// caller keeps its own empty state for that, per the user's "if they have
+// one" (2026-08-26).
+function fetchPersonImageUrl(qid) {
+  return fetchWikidataClaims(qid).then((claims) => {
+    const claim = claims && claims.P18 && claims.P18[0];
+    const filename = claim && claim.mainsnak && claim.mainsnak.datavalue && claim.mainsnak.datavalue.value;
+    return filename ? `https://commons.wikimedia.org/wiki/Special:FilePath/${encodeURIComponent(filename)}?width=200` : null;
+  });
+}
+
 // EMAX Songs only: P175 (performer) is a WIKIDATA-ITEM-valued claim (an
 // artist's own QID, not a date/string), so a second lookup - the same
 // enwiki-sitelink resolution the country/place fallback already uses via

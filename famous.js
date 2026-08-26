@@ -12,6 +12,27 @@ function setFamousStatus(message, isError) {
   el.className = 'famous-status' + (isError ? ' error' : '');
 }
 
+// Photo pill: reset to the placeholder glyph whenever a new search starts,
+// so a stale portrait from the last lookup never lingers under a different
+// name. A resolved P18 image swaps it in; a miss (or a load error on the
+// resolved URL) just leaves the placeholder up - never fabricated art.
+function resetFamousPhoto() {
+  const img = document.getElementById('famousPhotoImg');
+  const placeholder = document.getElementById('famousPhotoPlaceholder');
+  img.style.display = 'none';
+  img.src = '';
+  placeholder.style.display = '';
+}
+
+function setFamousPhoto(url) {
+  if (!url) return;
+  const img = document.getElementById('famousPhotoImg');
+  const placeholder = document.getElementById('famousPhotoPlaceholder');
+  img.onerror = () => resetFamousPhoto();
+  img.onload = () => { placeholder.style.display = 'none'; img.style.display = ''; };
+  img.src = url;
+}
+
 function renderFamousSuggestionsList() {
   const container = document.getElementById('famousSuggestions');
   if (famousMatches.length === 0) {
@@ -55,6 +76,7 @@ function handleFamousInput(value) {
     famousMatches = [];
     container.innerHTML = '';
     container.classList.remove('open');
+    resetFamousPhoto();
     return;
   }
 
@@ -84,6 +106,7 @@ function selectFamousPerson(title) {
   document.getElementById('famousSuggestions').innerHTML = '';
   document.getElementById('famousSuggestions').classList.remove('open');
   setFamousStatus('Looking up date...', false);
+  resetFamousPhoto();
 
   fetchWikidataId(title)
     .then((qid) => {
@@ -91,6 +114,9 @@ function selectFamousPerson(title) {
         setFamousStatus(`No Wikidata entry found for ${title}.`, true);
         return null;
       }
+      // Independent of the date lookup below - a miss here just leaves the
+      // placeholder up, it never blocks or fails the date resolution.
+      fetchPersonImageUrl(qid).then(setFamousPhoto).catch(() => {});
       return fetchKeyDate(qid);
     })
     .then((info) => {
