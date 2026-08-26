@@ -113,10 +113,15 @@ function render() {
   setText('daysUntilBirthday', r.daysLeft.daysUntilBirthday);
   setText('daysUntilMonthlyDay', r.daysLeft.daysUntilMonthlyDay);
 
+  // Famous Lookup dropped this box (2026-08-26, user: "get rid of the
+  // compatibility with today in famous lookup") - Profile/Calculator still
+  // have it, hence the null guard rather than deleting the block outright.
   const todayCompat = computeCompatibility(birthDate, today);
   const compatEl = document.getElementById('compatTodayScore');
-  compatEl.textContent = `${todayCompat.finalScore}%`;
-  compatEl.className = `box-value ${tierClass(todayCompat.finalScore)}`;
+  if (compatEl) {
+    compatEl.textContent = `${todayCompat.finalScore}%`;
+    compatEl.className = `box-value ${tierClass(todayCompat.finalScore)}`;
+  }
 
   const compatMeEl = document.getElementById('compatMeScore');
   if (compatMeEl) {
@@ -459,12 +464,15 @@ function closeModal() {
   document.getElementById('compatModalOverlay').classList.remove('active');
 }
 
-document.getElementById('compatTodayBox').addEventListener('click', () => {
-  if (!lastBirthDate) return;
-  const result = computeCompatibility(lastBirthDate, getToday());
-  renderCompatHero(document.getElementById('compatModalBody'), result, 'You', 'Today', { compact: true, pillDateA: lastBirthDate, pillDateB: getToday() });
-  openModal();
-});
+const compatTodayBoxEl = document.getElementById('compatTodayBox');
+if (compatTodayBoxEl) {
+  compatTodayBoxEl.addEventListener('click', () => {
+    if (!lastBirthDate) return;
+    const result = computeCompatibility(lastBirthDate, getToday());
+    renderCompatHero(document.getElementById('compatModalBody'), result, 'You', 'Today', { compact: true, pillDateA: lastBirthDate, pillDateB: getToday() });
+    openModal();
+  });
+}
 
 const pmReducedEl = document.getElementById('pmReduced');
 if (pmReducedEl) {
