@@ -72,7 +72,18 @@
     compatibility: {
       seenKey: 'c13_tour_seen_compatibility_v1',
       beats: [
-        { target: function () { return q('#modeSelect') || q('.compat-mode-select'); },
+        { target: function () {
+            // compatibility.js hides #modeSelect (display:none) once a mode
+            // is already picked - a plain querySelector still finds that
+            // hidden element (it's real DOM, just invisible), so the
+            // spotlight targeted a 0x0 rect at the top of the page for
+            // anyone replaying the tour after their first visit. Same bug
+            // as Profile's "up top all glitched" fix - falls back to a
+            // centered card (like beat 2 below) instead of a broken hole.
+            var el = q('#modeSelect');
+            if (el && !el.offsetParent) el = null;
+            return el;
+          },
           line: 'Compatibility: you against a person, a date, or anything with a birthday. Pick a mode.' },
         { target: function () { return null; },
           line: 'Every check weighs all the layers: numerology, Vietnamese, Western. One score, then the why.' },
