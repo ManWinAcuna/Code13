@@ -46,7 +46,17 @@
           line: 'Your chart lives here: Life Path, Day Born, Day#, Combo. Tap any number for its full story.' },
         { target: function () { return q('#profileZodiacSection'); },
           line: 'Your zodiac layers and your Personal Cycles: the year, month, and day you are moving through right now.' },
-        { target: function () { return q('#personalHoursSection') || q('.pinnacles-collapsible'); },
+        { target: function () {
+            // render.js hides Personal Hours outright (display:none) until a
+            // birth TIME is entered, not just a date - a plain querySelector
+            // still finds that hidden element (it's real DOM, just
+            // invisible), so `||` never fell through and the spotlight
+            // targeted a 0x0 rect at the top of the page. User, 2026-08-26:
+            // "the last one before done is just up top all glitched."
+            var hours = q('#personalHoursSection');
+            if (hours && !hours.offsetParent) hours = null;
+            return hours || q('.pinnacles-collapsible');
+          },
           line: 'The deep layers: your hours and your Pinnacles. Monthly members see them unveiled.' },
       ],
     },
