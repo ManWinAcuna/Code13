@@ -130,7 +130,13 @@
       const line = fillTokens(pick14('meter:' + kind + ':' + (left <= 0 ? 'limit' : left <= 5 ? 'near' : 'ok'), pool), kind);
       const cta = pick14('meterCta:' + kind, pools.ctas) || 'Get Code13+';
       const cls = left <= 5 ? 'c13-meter-line low' : 'c13-meter-line';
-      return `<div class="${cls}">${line} <button type="button" class="c13-meter-plus" onclick="c13OpenPaywall('${kind}')">${cta}</button></div>`;
+      // The rotating Bank 14 line doesn't always spell out the count - some
+      // variants are pure flavor text with no {remaining}/{used} token - so
+      // "how many do I have left" wasn't always answered, depending on which
+      // line the daily rotation landed on. User, 2026-08-26: "it should tell
+      // you how many lookups you have left." This small count is always
+      // present regardless of rotation; Bank 14's own line is untouched.
+      return `<div class="${cls}"><div class="c13-meter-count">${left} of ${m.limit} ${m.noun} left</div>${line} <button type="button" class="c13-meter-plus" onclick="c13OpenPaywall('${kind}')">${cta}</button></div>`;
     }
     if (left <= 5) {
       return `<div class="c13-meter-line low">${left} ${m.noun} left. <button type="button" class="c13-meter-plus" onclick="c13OpenPaywall('${kind}')">Go Unlimited</button></div>`;
@@ -411,6 +417,7 @@
     .c13-pw-fine { margin-top: 10px; font-size: 10px; color: var(--muted, #5b6a80); line-height: 1.5; }
     .c13-meter-line { margin-top: 8px; font-size: 11.5px; color: var(--muted, #5b6a80); text-align: center; }
     .c13-meter-line.low { color: var(--acc-text, #e8b04b); }
+    .c13-meter-count { font-weight: 700; color: var(--text, #dfe7f3); margin-bottom: 2px; }
     .c13-meter-plus { background: none; border: none; padding: 0; cursor: pointer; font-family: inherit;
       font-size: 11.5px; color: var(--acc-text, #e8b04b); text-decoration: underline; }
     .c13-lock { border: 1px dashed var(--border, #223048); border-radius: 14px; padding: 14px;
