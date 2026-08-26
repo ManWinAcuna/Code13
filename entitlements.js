@@ -24,11 +24,15 @@
    localStorage.setItem('code13_plus', '{"active":true,"tier":"dev"}') */
 (function () {
   const ENTITLE_KEY = 'code13_plus';
-  // Stripe Payment Links, one per tier. Empty string = not purchasable yet.
+  // Stripe Payment Links, one per tier (live 2026-08-26). Empty string =
+  // not purchasable yet. Standard Stripe Checkout, not Managed Payments -
+  // the code13 Stripe account isn't verified for Managed Payments yet, so
+  // those links 404'd with a "product category required" error; regular
+  // Payment Links work immediately on an unverified account.
   const PAY_LINKS = {
-    weekly: '',
-    monthly: '',
-    lifetime: '',
+    weekly: 'https://buy.stripe.com/5kQfZae609Kb4o1dJYcMM02',
+    monthly: 'https://buy.stripe.com/8x26oA2o6aOff2F35kcMM01',
+    lifetime: 'https://buy.stripe.com/5kQ28k9Qy4pRcUx9tIcMM00',
   };
   const METERS = {
     compat: { key: 'code13_meter_compat', limit: 31, noun: 'free readings' },
