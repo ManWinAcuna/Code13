@@ -74,6 +74,13 @@
     border-radius: 999px; background: none; color: var(--text); font-size: 11px;
     letter-spacing: .1em; cursor: pointer; font-family: inherit;
     -webkit-tap-highlight-color: transparent; }
+
+  .gate-install { display: none; align-items: center; justify-content: center; gap: 8px;
+    width: 100%; margin-top: 12px; padding: 12px 0; border: 1px solid rgba(245,197,66,.3);
+    border-radius: 999px; background: rgba(245,197,66,.06); color: var(--gold); font-size: 11px;
+    font-weight: 700; letter-spacing: .1em; text-transform: uppercase; cursor: pointer;
+    font-family: inherit; -webkit-tap-highlight-color: transparent; }
+  .gate-install.show { display: flex; }
 </style>
 </head>
 <body>
@@ -92,6 +99,7 @@
 
     <div class="gate-divider">or</div>
     <button class="gate-skip" id="gateSkip" type="button">Continue without an account</button>
+    <button class="gate-install" id="gateInstall" type="button">&#8681; Install App</button>
   </div>
 </div>
 
@@ -158,6 +166,30 @@
   document.getElementById('gateSkip').addEventListener('click', function () {
     try { localStorage.setItem(SKIP_KEY, '1'); } catch (e) {}
     go();
+  });
+
+  // Android/Chrome install button - beforeinstallprompt only fires when the
+  // browser has decided the PWA is genuinely installable (valid manifest +
+  // active service worker + not already installed) and isn't supported at
+  // all on iOS Safari, so the button simply never appears there - no UA
+  // sniffing needed. User, 2026-08-26: "have it be in the login have like
+  // a android button download."
+  var deferredInstallPrompt = null;
+  var installBtn = document.getElementById('gateInstall');
+  window.addEventListener('beforeinstallprompt', function (e) {
+    e.preventDefault();
+    deferredInstallPrompt = e;
+    installBtn.classList.add('show');
+  });
+  installBtn.addEventListener('click', function () {
+    if (!deferredInstallPrompt) return;
+    var prompt = deferredInstallPrompt;
+    deferredInstallPrompt = null;
+    installBtn.classList.remove('show');
+    prompt.prompt();
+  });
+  window.addEventListener('appinstalled', function () {
+    installBtn.classList.remove('show');
   });
 
   var mode = 'signin';
