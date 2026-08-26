@@ -10,18 +10,22 @@
   // Today stands alone, dead center (owner's call 2026-08-13) - the same
   // center-slot treatment the Stable horse gets in numerology-app.
   // Database is promoted to its own tab (it's the flagship paid feature).
+  // 2026-08-26, user: swapped which slot is the dropdown - Famous Lookup
+  // now stands alone (was buried a tap deep inside Tools), and Tools took
+  // over Database's old slot/label, now holding Calculator, Compatibility,
+  // AND Database together.
   const TABS = [
     { id: 'days', icon: '📅', label: 'Days', items: [
       { href: 'calendar.html', icon: '📅', label: 'Calendar' },
       { href: 'astrology.html', icon: '🌙', label: 'Astrology' },
     ], match: ['calendar', 'astrology'] },
+    { id: 'famous', icon: '🔍', label: 'Lookup', href: 'famous.html', match: ['famous'] },
+    { id: 'today', icon: '☀️', label: 'Today', href: 'today.html', match: ['today'] },
     { id: 'tools', icon: '🧮', label: 'Tools', items: [
       { href: 'calculator.html', icon: '🧮', label: 'Calculator' },
       { href: 'compatibility.html', icon: '🤝', label: 'Compatibility' },
-      { href: 'famous.html', icon: '⭐', label: 'Famous Lookup' },
-    ], match: ['calculator', 'compatibility', 'famous'] },
-    { id: 'today', icon: '☀️', label: 'Today', href: 'today.html', match: ['today'] },
-    { id: 'database', icon: '🗂', label: 'Database', href: 'database.html', match: ['database', 'category'] },
+      { href: 'database.html', icon: '🗂', label: 'Database' },
+    ], match: ['calculator', 'compatibility', 'database', 'category'] },
     { id: 'profile', icon: '👤', label: 'Profile', href: 'profile.html', match: ['profile'] },
   ];
 
