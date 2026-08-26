@@ -97,30 +97,36 @@
   var forced = false;
   try { forced = new URLSearchParams(location.search).get('tour') === '1'; } catch (e) {}
 
+  // Every page's seen-state rides to the account now (2026-08-26, owner
+  // call: an account is required to use the app at all, so there's no
+  // reason page intros should stay device-only anymore - user noticed
+  // Today's tour was remembered across devices but "not sure it's
+  // remembering it on all of them"). 'today' keeps its original Firestore
+  // field name (mainSeen) for backward compatibility with data already
+  // written before this change; the other four pages get their own field.
+  var ACCOUNT_FIELD = cfg.main ? 'mainSeen' : PAGE + 'Seen';
+
   function seen() { try { return localStorage.getItem(SEEN_KEY) === '1'; } catch (e) { return false; } }
   function markSeen() {
     try {
       localStorage.setItem(SEEN_KEY, '1');
       if (cfg.main) localStorage.removeItem(STEP_KEY);
     } catch (e) {}
-    // The main tour's seen-state also rides to the account (owner call
-    // 2026-08-26: "only give 1 walkthrough per account") - best-effort,
-    // never blocks the UI. Page intros stay device-local, unchanged.
-    if (cfg.main) {
-      try {
-        if (window.firebase && firebase.auth && firebase.auth().currentUser) {
-          firebase.firestore().collection('users').doc(firebase.auth().currentUser.uid)
-            .collection('meta').doc('tour').set({ mainSeen: true }, { merge: true }).catch(function () {});
-        }
-      } catch (e) {}
-    }
+    // Best-effort, never blocks the UI.
+    try {
+      if (window.firebase && firebase.auth && firebase.auth().currentUser) {
+        var patch = {}; patch[ACCOUNT_FIELD] = true;
+        firebase.firestore().collection('users').doc(firebase.auth().currentUser.uid)
+          .collection('meta').doc('tour').set(patch, { merge: true }).catch(function () {});
+      }
+    } catch (e) {}
   }
   function getProfile() { try { return loadProfile(); } catch (e) { return null; } }
 
   // Resolves true/false/null (null = no account to check, or check failed -
   // caller should fall through to normal local-only behavior). Only called
-  // for the main tour, and only when this device has signed in before, so
-  // a fresh guest never pays a network wait to learn what it already knows.
+  // when this device has signed in before, so a fresh guest never pays a
+  // network wait to learn what it already knows.
   function readAccountTourSeen() {
     return new Promise(function (resolve) {
       var everSignedIn = false;
@@ -133,7 +139,7 @@
             if (!user) { resolve(null); return; }
             firebase.firestore().collection('users').doc(user.uid)
               .collection('meta').doc('tour').get()
-              .then(function (snap) { resolve(!!(snap.exists && snap.data() && snap.data().mainSeen)); })
+              .then(function (snap) { resolve(!!(snap.exists && snap.data() && snap.data()[ACCOUNT_FIELD])); })
               .catch(function () { resolve(null); });
           }, function () { resolve(null); });
         } else if (++tries < 20) {
@@ -360,17 +366,17 @@
     // only the MAIN tour is auto-skipped for devices that already hold a
     // profile; the short page intros show once for everyone
     if (cfg.main && prof && prof.date) { markSeen(); addHelpBtn(); return; }
-    if (cfg.main) {
-      // Local storage doesn't know yet - ask the account before committing
-      // to show the tour, so signing in on a new/cleared device doesn't
-      // repeat it. Guests and accounts that have never signed in resolve
-      // this near-instantly (readAccountTourSeen short-circuits to null).
-      readAccountTourSeen().then(function (accountSeen) {
-        if (accountSeen === true) { markSeen(); addHelpBtn(); return; }
-        proceed();
-      });
-      return;
-    }
+    // Local storage doesn't know yet - ask the account before committing to
+    // show the tour, so signing in on a new/cleared device doesn't repeat
+    // it, for EVERY page's tour now (not just Today's) - an account is
+    // required app-wide, so there's no guest case left to fast-path around.
+    // Accounts that have never signed in still resolve this near-instantly
+    // (readAccountTourSeen short-circuits to null).
+    readAccountTourSeen().then(function (accountSeen) {
+      if (accountSeen === true) { markSeen(); addHelpBtn(); return; }
+      proceed();
+    });
+    return;
   }
   proceed();
 })();
