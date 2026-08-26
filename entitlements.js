@@ -183,7 +183,7 @@
     {
       id: 'weekly', badge: 'Easy Start', name: 'Weekly',
       list: '$13', offer: '$9.03', per: '/week',
-      note: '3-day free trial', cta: 'Start Free Trial',
+      note: 'Billed weekly, cancel anytime', cta: 'Get Weekly',
     },
     {
       id: 'monthly', badge: 'Most Popular', badgeHot: true, name: 'Monthly',
@@ -292,13 +292,24 @@
     if (bank) {
       const pool = surfacePool(context);
       if (pool) {
-        head = pool.ctas && pool.ctas.length ? pool.ctas[0] : pick14('pw:head', bank.headlines);
-        bodyText = fillTokens(pick14('pw:body:' + context, pool.lines), SURFACE_OF[context] === 'compat' || SURFACE_OF[context] === 'famous' ? context : null);
+        head = (pool.ctas && pool.ctas.length ? pool.ctas[0] : pick14('pw:head', bank.headlines)) || head;
+        // Not every surface pool carries its own body lines (e.g. `famous`
+        // only has meter/near/limit/ctas) - pick14 returns null for those,
+        // and fillTokens(null) passes null straight through, which rendered
+        // as the literal text "null" in the popup (user, 2026-08-26: "theres
+        // also something that just says null"). Falls back to the existing
+        // hand-written CONTEXT_COPY line for that surface instead of ever
+        // showing a raw null.
+        const picked = pick14('pw:body:' + context, pool.lines);
+        bodyText = picked
+          ? fillTokens(picked, SURFACE_OF[context] === 'compat' || SURFACE_OF[context] === 'famous' ? context : null)
+          : (CONTEXT_COPY[context] || CONTEXT_COPY.generic);
       } else {
-        head = pick14('pw:head', bank.headlines);
-        bodyText = fillTokens(pick14('pw:body:generic', bank.global));
+        head = pick14('pw:head', bank.headlines) || head;
+        const pickedGeneric = pick14('pw:body:generic', bank.global);
+        bodyText = pickedGeneric ? fillTokens(pickedGeneric) : CONTEXT_COPY.generic;
       }
-      sub = pick14('pw:sub', bank.supporting);
+      sub = pick14('pw:sub', bank.supporting) || sub;
       // 4 benefit bullets, rotated daily, the whole set over time.
       const off = dayHash('pw:bullets') % bank.bullets.length;
       const chosen = [];
@@ -311,9 +322,13 @@
       exitHtml = `<button type="button" class="c13-pw-exit" onclick="c13ClosePaywall()">${exitLabel}</button>`;
     }
 
+    // 2026-08-26, user: "the weekly shouldn't have a 3 day trial... straight
+    // to buy, only monthly." The trial itself lives on the Monthly Stripe
+    // Payment Link's own settings (not this file) - this only swaps which
+    // card's CTA/badge advertises it.
     const tierCopy = bank ? {
-      weekly: { note: planLine('WEEKLY'), cta: 'Start 3-Day Trial', badge: '3-Day Trial' },
-      monthly: { note: planLine('MONTHLY'), cta: 'Get Monthly', badge: 'Best for Ongoing Use' },
+      weekly: { note: planLine('WEEKLY'), cta: 'Get Weekly', badge: 'Easy Start' },
+      monthly: { note: planLine('MONTHLY'), cta: 'Start 3-Day Trial', badge: '3-Day Trial' },
       lifetime: { note: planLine('LIFETIME'), cta: 'Get Lifetime', badge: 'Founding Offer' },
     } : null;
     const cards = TIERS.map((t) => {
