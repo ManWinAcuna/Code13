@@ -1731,6 +1731,18 @@ body::after {
 
 .person-input .source-search-wrap { margin-bottom: 8px; }
 
+/* Place mode's quick-pick pills + the US-states popup's "or pick a city"
+   link (2026-08-26). */
+.place-quickpicks { display: flex; gap: 8px; margin-bottom: 8px; }
+.place-pick-btn { flex: 1; padding: 10px 0; border: 1px solid var(--border);
+  border-radius: 999px; background: rgba(255,255,255,.03); color: var(--text);
+  font-size: 12.5px; font-weight: 600; cursor: pointer; font-family: inherit; }
+.place-pick-btn:hover { border-color: var(--yellow); }
+.us-cities-link { display: block; margin-top: 2px; background: none; border: none;
+  padding: 0; font-size: 10.5px; color: var(--muted); text-decoration: underline;
+  cursor: pointer; font-family: inherit; }
+.us-cities-link:hover { color: var(--yellow); }
+
 .imprint-person-toggle {
   display: flex;
   align-items: center;

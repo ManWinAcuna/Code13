@@ -70,6 +70,145 @@ const MODE_COPY = {
   place: { label: 'Its founding date', search: 'Search a city, state, country...', verb: 'founded' },
 };
 
+// Place mode's "United States" quick-pick (2026-08-26, user: "a second
+// potential entry pill... united states, and other country"). Every name
+// here already resolves instantly through lookupPlaceFoundingDate's
+// pinned US_PLACE_DATES table (db-core.js) - no network round trip, same
+// path a typed-and-selected search result uses. City order matches the
+// owner's source file (largest-by-recent-Census-estimate first, not
+// necessarily traditional "biggest city" assumptions).
+const US_PLACES = [
+  { state: 'Alabama', cities: ['Huntsville', 'Birmingham'] },
+  { state: 'Alaska', cities: ['Anchorage', 'Fairbanks'] },
+  { state: 'Arizona', cities: ['Phoenix', 'Tucson'] },
+  { state: 'Arkansas', cities: ['Little Rock', 'Fayetteville'] },
+  { state: 'California', cities: ['Los Angeles', 'San Diego'] },
+  { state: 'Colorado', cities: ['Denver', 'Colorado Springs'] },
+  { state: 'Connecticut', cities: ['Bridgeport', 'Stamford'] },
+  { state: 'Delaware', cities: ['Wilmington', 'Dover'] },
+  { state: 'Florida', cities: ['Jacksonville', 'Miami'] },
+  { state: 'Georgia', cities: ['Atlanta', 'Columbus'] },
+  { state: 'Hawaii', cities: ['Honolulu', 'Hilo'] },
+  { state: 'Idaho', cities: ['Boise', 'Meridian'] },
+  { state: 'Illinois', cities: ['Chicago', 'Aurora'] },
+  { state: 'Indiana', cities: ['Indianapolis', 'Fort Wayne'] },
+  { state: 'Iowa', cities: ['Des Moines', 'Cedar Rapids'] },
+  { state: 'Kansas', cities: ['Wichita', 'Overland Park'] },
+  { state: 'Kentucky', cities: ['Louisville', 'Lexington'] },
+  { state: 'Louisiana', cities: ['New Orleans', 'Baton Rouge'] },
+  { state: 'Maine', cities: ['Portland', 'Lewiston'] },
+  { state: 'Maryland', cities: ['Baltimore', 'Frederick'] },
+  { state: 'Massachusetts', cities: ['Boston', 'Worcester'] },
+  { state: 'Michigan', cities: ['Detroit', 'Grand Rapids'] },
+  { state: 'Minnesota', cities: ['Minneapolis', 'Saint Paul'] },
+  { state: 'Mississippi', cities: ['Jackson', 'Gulfport'] },
+  { state: 'Missouri', cities: ['Kansas City', 'St. Louis'] },
+  { state: 'Montana', cities: ['Billings', 'Missoula'] },
+  { state: 'Nebraska', cities: ['Omaha', 'Lincoln'] },
+  { state: 'Nevada', cities: ['Las Vegas', 'Henderson'] },
+  { state: 'New Hampshire', cities: ['Manchester', 'Nashua'] },
+  { state: 'New Jersey', cities: ['Newark', 'Jersey City'] },
+  { state: 'New Mexico', cities: ['Albuquerque', 'Las Cruces'] },
+  { state: 'New York', cities: ['New York City', 'Buffalo'] },
+  { state: 'North Carolina', cities: ['Charlotte', 'Raleigh'] },
+  { state: 'North Dakota', cities: ['Fargo', 'Bismarck'] },
+  { state: 'Ohio', cities: ['Columbus', 'Cleveland'] },
+  { state: 'Oklahoma', cities: ['Oklahoma City', 'Tulsa'] },
+  { state: 'Oregon', cities: ['Portland', 'Eugene'] },
+  { state: 'Pennsylvania', cities: ['Philadelphia', 'Pittsburgh'] },
+  { state: 'Rhode Island', cities: ['Providence', 'Warwick'] },
+  { state: 'South Carolina', cities: ['Charleston', 'Columbia'] },
+  { state: 'South Dakota', cities: ['Sioux Falls', 'Rapid City'] },
+  { state: 'Tennessee', cities: ['Nashville', 'Memphis'] },
+  { state: 'Texas', cities: ['Houston', 'San Antonio'] },
+  { state: 'Utah', cities: ['Salt Lake City', 'West Valley City'] },
+  { state: 'Vermont', cities: ['Burlington', 'South Burlington'] },
+  { state: 'Virginia', cities: ['Virginia Beach', 'Chesapeake'] },
+  { state: 'Washington', cities: ['Seattle', 'Spokane'] },
+  { state: 'West Virginia', cities: ['Charleston', 'Huntington'] },
+  { state: 'Wisconsin', cities: ['Milwaukee', 'Madison'] },
+  { state: 'Wyoming', cities: ['Cheyenne', 'Casper'] },
+];
+
+const usPlacesModalEl = document.getElementById('usPlacesModalOverlay');
+
+function closeUsPlacesModal() {
+  usPlacesModalEl.classList.remove('active');
+}
+
+function renderUsStatesGrid() {
+  document.getElementById('usPlacesModalTitle').textContent = 'A U.S. State';
+  document.getElementById('usPlacesModalBody').innerHTML = `
+    <div class="category-grid">
+      ${US_PLACES.map((p) => `
+        <div class="category-tile" data-state="${escapeHtml(p.state)}">
+          <div class="tile-icon">📍</div>
+          <div class="tile-name">${escapeHtml(p.state)}</div>
+          <button type="button" class="us-cities-link" data-state="${escapeHtml(p.state)}">or pick a city</button>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+// User's call, 2026-08-26: tapping a state selects it right away (same
+// instant path as the rest of this popup) - the "or pick a city" link on
+// each tile is the one way into this drill-down, mirroring EMAX's own
+// item-popup-stacks-a-second-popup precedent (emax-popup.js).
+function renderUsCitiesGrid(stateName) {
+  const place = US_PLACES.find((p) => p.state === stateName);
+  if (!place) return;
+  document.getElementById('usPlacesModalTitle').textContent = stateName;
+  document.getElementById('usPlacesModalBody').innerHTML = `
+    <a href="#" class="emax-modal-back" id="usCitiesBack">&larr; Back to states</a>
+    <div class="category-grid">
+      ${place.cities.map((city) => `
+        <div class="category-tile" data-city="${escapeHtml(city)}">
+          <div class="tile-icon">🏙️</div>
+          <div class="tile-name">${escapeHtml(city)}</div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+  document.getElementById('usCitiesBack').addEventListener('click', (e) => {
+    e.preventDefault();
+    renderUsStatesGrid();
+  });
+}
+
+function openUsPlacesModal() {
+  renderUsStatesGrid();
+  usPlacesModalEl.classList.add('active');
+}
+
+document.getElementById('usPlacesModalClose').addEventListener('click', closeUsPlacesModal);
+usPlacesModalEl.addEventListener('click', (e) => {
+  if (e.target === usPlacesModalEl) closeUsPlacesModal();
+});
+
+// Delegated once on the static body element - its innerHTML is swapped
+// between the states grid and a state's cities grid, so listeners bound
+// to individual tiles would be lost on every re-render.
+document.getElementById('usPlacesModalBody').addEventListener('click', (e) => {
+  const citiesLink = e.target.closest('.us-cities-link');
+  if (citiesLink) {
+    e.stopPropagation();
+    renderUsCitiesGrid(citiesLink.dataset.state);
+    return;
+  }
+  const cityTile = e.target.closest('.category-tile[data-city]');
+  if (cityTile) {
+    closeUsPlacesModal();
+    selectSuggestion({ title: cityTile.dataset.city });
+    return;
+  }
+  const stateTile = e.target.closest('.category-tile[data-state]');
+  if (stateTile) {
+    closeUsPlacesModal();
+    selectSuggestion({ title: stateTile.dataset.state });
+  }
+});
+
 // "You" side: birthday only, prefilled from the saved profile so a
 // returning user never retypes their own date. The other side is
 // mode-shaped: a Wikipedia-backed name search (with a per-row status
@@ -92,6 +231,13 @@ function youInputHTML() {
 function otherInputHTML() {
   const copy = MODE_COPY[mode];
   const dbOption = mode === 'person' ? '<option value="database">🗂 My Database</option>' : '';
+  // Place mode's quick-pick pills - a second entry path alongside the
+  // search box below, not a replacement for it.
+  const placePicks = mode === 'place' ? `
+      <div class="place-quickpicks">
+        <button type="button" class="place-pick-btn" id="placePickUS">🇺🇸 United States</button>
+        <button type="button" class="place-pick-btn" id="placePickOther">🌍 Other Country</button>
+      </div>` : '';
   return `
     <div class="person-input box" data-person="B">
       <div class="box-label">${copy.label}</div>
@@ -100,6 +246,7 @@ function otherInputHTML() {
         ${dbOption}
         <option value="manual">✍️ Type the date myself</option>
       </select>
+      ${placePicks}
       <div class="player-search-wrap source-search-wrap" data-person="B">
         <input type="text" class="player-search source-search" data-person="B" placeholder="${copy.search}" autocomplete="off">
         <div class="player-suggestions source-suggestions" data-person="B"></div>
@@ -260,6 +407,16 @@ function wireInputs() {
     const match = searchMatches[Number(item.dataset.index)];
     if (match) selectSuggestion(match);
   });
+
+  const usPickBtn = document.getElementById('placePickUS');
+  if (usPickBtn) usPickBtn.addEventListener('click', openUsPlacesModal);
+  const otherPickBtn = document.getElementById('placePickOther');
+  if (otherPickBtn) {
+    otherPickBtn.addEventListener('click', () => {
+      const searchInput = document.querySelector('.source-search[data-person="B"]');
+      if (searchInput) searchInput.focus();
+    });
+  }
 }
 
 document.addEventListener('click', (e) => {

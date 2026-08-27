@@ -13,7 +13,7 @@
 <link rel="icon" href="favicon-64.png?v=3" sizes="64x64">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <title>Compatibility Calculator</title>
-<link rel="stylesheet" href="style.css?v=5">
+<link rel="stylesheet" href="style.css?v=6">
 <link rel="stylesheet" href="godlike.css?v=45">
 </head>
 <body>
@@ -83,6 +83,17 @@
   </div>
 </div>
 
+<!-- Place mode's "United States" quick-pick (2026-08-26): reuses EMAX's
+     own .category-grid/.category-tile classes (style.css) so it matches
+     that browse style exactly without new CSS for the grid itself. -->
+<div class="modal-overlay" id="usPlacesModalOverlay">
+  <div class="modal-box">
+    <button class="modal-close" id="usPlacesModalClose" title="Close">&times;</button>
+    <div class="box-label" id="usPlacesModalTitle">A U.S. State</div>
+    <div id="usPlacesModalBody"></div>
+  </div>
+</div>
+
 <script src="scroll-viewport.js"></script>
 <script src="astronomy.browser.min.js"></script>
 <script src="astro-engine.js"></script>
@@ -101,7 +112,7 @@
 <script src="banks/c13-bank-viet-pairs.js?v=2"></script>
 <script src="banks/c13-bank-western-pairs.js?v=2"></script>
 <script src="c13-copy.js?v=7"></script>
-<script src="compatibility.js?v=9"></script>
+<script src="compatibility.js?v=10"></script>
 <script src="godlike.js?v=2"></script>
 <script src="c13-tour.js?v=6"></script>
 </body>
