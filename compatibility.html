@@ -13,7 +13,7 @@
 <link rel="icon" href="favicon-64.png?v=3" sizes="64x64">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <title>Compatibility Calculator</title>
-<link rel="stylesheet" href="style.css?v=7">
+<link rel="stylesheet" href="style.css?v=8">
 <link rel="stylesheet" href="godlike.css?v=45">
 </head>
 <body>
@@ -90,6 +90,22 @@
     <button class="btn btn-large" id="calculateBtn">Calculate Compatibility</button>
   </div>
 
+  <!-- Place mode's "United States" browser (reworked 2026-08-27 from a
+       popup into a real full screen, per the user: "the whole thing
+       shouldn't be a popup it should just take you into its own screen" -
+       same display-swap pattern as modeSelect/placeCountrySelect above, not
+       modal-overlay/.active. Every tile carries its own live score ring
+       (EMAX's own tap-free "wheel"), and tapping a tile calculates and
+       opens the results popup immediately - no separate Calculate step. -->
+  <div class="compat-title-row" id="usPlacesTitleRow" style="display:none">
+    <a href="#" class="back-link" id="usPlacesBack">&larr; Back</a>
+  </div>
+  <div class="us-places-screen" id="usPlacesScreen" style="display:none">
+    <div class="us-places-you-row" id="usPlacesYouRow"></div>
+    <h1 class="page-title" id="usPlacesHeading">A U.S. State</h1>
+    <div class="emax-tile-grid" id="usPlacesGrid"></div>
+  </div>
+
 </div>
 
 <!-- Deliberately OUTSIDE .page - see category.html for why (scroll-viewport.js
@@ -100,17 +116,6 @@
   <div class="modal-box">
     <button class="modal-close" id="compatModalClose" title="Close">&times;</button>
     <div id="compatResults"></div>
-  </div>
-</div>
-
-<!-- Place mode's "United States" popup (2026-08-26): reuses EMAX's own
-     .emax-tile-grid/.emax-tile-poster photo-tile classes (style.css) so
-     it matches that browse style exactly, real photos included. -->
-<div class="modal-overlay" id="usPlacesModalOverlay">
-  <div class="modal-box">
-    <button class="modal-close" id="usPlacesModalClose" title="Close">&times;</button>
-    <div class="box-label" id="usPlacesModalTitle">A U.S. State</div>
-    <div id="usPlacesModalBody"></div>
   </div>
 </div>
 
@@ -132,7 +137,7 @@
 <script src="banks/c13-bank-viet-pairs.js?v=2"></script>
 <script src="banks/c13-bank-western-pairs.js?v=2"></script>
 <script src="c13-copy.js?v=7"></script>
-<script src="compatibility.js?v=11"></script>
+<script src="compatibility.js?v=12"></script>
 <script src="godlike.js?v=2"></script>
 <script src="c13-tour.js?v=6"></script>
 </body>

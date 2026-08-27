@@ -1731,12 +1731,26 @@ body::after {
 
 .person-input .source-search-wrap { margin-bottom: 8px; }
 
-/* US-states popup's "or pick a city" link, under each state's photo tile
-   (2026-08-26). */
+/* US-states browser's "or pick a city" link, under each state's photo
+   tile (2026-08-26). */
 .us-cities-link { display: block; margin-top: 4px; background: none; border: none;
   padding: 0; font-size: 10.5px; color: var(--muted); text-decoration: underline;
   cursor: pointer; font-family: inherit; }
 .us-cities-link:hover { color: var(--yellow); }
+
+/* US-states/cities full-screen browser (reworked 2026-08-27 from a modal
+   popup - user: "the whole thing shouldnt be a popup it should just take
+   you into its own screen"). The birthday box reuses .person-input's own
+   look, just tightened to a single narrow field instead of the full
+   two-person form it normally sits inside. */
+.us-places-you-row {
+  max-width: 340px;
+  margin-bottom: 18px;
+}
+.us-places-you-row .person-input { margin: 0; }
+#usPlacesGrid.emax-tile-grid {
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+}
 
 .imprint-person-toggle {
   display: flex;

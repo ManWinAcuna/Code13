@@ -132,13 +132,31 @@ const US_PLACES = [
 
 // Real photos, "literally just like emax" (user, 2026-08-26) - same
 // technique as emax-popup.js's emaxFetchImage: Wikipedia's page/summary
-// endpoint returns a real thumbnail in one request, no key needed. Cached
-// in localStorage (place names don't change) so browsing the grid twice
-// never re-fetches. A miss (or offline) leaves the colored-initials
-// monogram fallback up - never a broken image or a guessed picture.
-const US_PLACE_IMAGE_CACHE_KEY = 'code13_us_place_images_v1';
+// endpoint returns a real thumbnail in one request, no key needed. A
+// second attempt (Wikidata's P18 claim, the same fetchPersonImageUrl
+// chain Famous Lookup's photo pill already uses) catches the handful the
+// summary endpoint alone misses. Cached in localStorage (place names
+// don't change) so browsing the grid twice never re-fetches. A miss (or
+// offline) leaves the colored-initials monogram fallback up - never a
+// broken image or a guessed picture. v2 key (2026-08-27, was v1) - the
+// old cache had 3 permanent nulls cached for titles that only failed
+// because they were ambiguous (see US_STATE_IMAGE_TITLE below), and
+// hasOwnProperty short-circuits a cached null forever.
+const US_PLACE_IMAGE_CACHE_KEY = 'code13_us_place_images_v2';
 let usPlaceImageCache = {};
 try { usPlaceImageCache = JSON.parse(localStorage.getItem(US_PLACE_IMAGE_CACHE_KEY)) || {}; } catch (e) { /* ignore */ }
+
+// A bare state name isn't always Wikipedia's primary topic for that exact
+// title - Georgia the country, Washington D.C./George Washington, and New
+// York City all outrank the U.S. state on the plain title, so the summary
+// endpoint either 404s or returns the WRONG entity's photo. These 3 are
+// the only collisions among the 50 (checked live, 2026-08-27) - every
+// other state name is unambiguous.
+const US_STATE_IMAGE_TITLE = {
+  Georgia: 'Georgia (U.S. state)',
+  'New York': 'New York (state)',
+  Washington: 'Washington (state)',
+};
 
 function fetchPlaceImage(title) {
   if (Object.prototype.hasOwnProperty.call(usPlaceImageCache, title)) return Promise.resolve(usPlaceImageCache[title]);
@@ -146,6 +164,7 @@ function fetchPlaceImage(title) {
     .then((res) => res.json())
     .then((data) => (data.thumbnail && data.thumbnail.source) || null)
     .catch(() => null)
+    .then((url) => (url ? url : fetchWikidataId(title).then((qid) => (qid ? fetchPersonImageUrl(qid) : null)).catch(() => null)))
     .then((url) => {
       usPlaceImageCache[title] = url;
       try { localStorage.setItem(US_PLACE_IMAGE_CACHE_KEY, JSON.stringify(usPlaceImageCache)); } catch (e) { /* storage full - refetch next time */ }
@@ -164,21 +183,106 @@ function placeMonogram(name) {
   return `<div class="emax-monogram" style="--emax-hue:${hue}">${escapeHtml(initials)}</div>`;
 }
 
-const usPlacesModalEl = document.getElementById('usPlacesModalOverlay');
+// A handful of city names collide with a DIFFERENT state's pinned entry
+// in db-core.js's flat US_PLACE_DATES map, since a plain city name isn't
+// unique across states. "columbus" alone is pinned to Ohio's exact
+// Feb 14, 1812 date - but Georgia's own Columbus only has a YEAR (1828)
+// in the source PDF and must never silently inherit Ohio's day-exact one
+// (checked against the source PDF text, 2026-08-27 - the only such
+// collision among all 100 cities). Skipped cities fall through to a
+// disambiguated "City, State" live lookup instead, same fix as the image
+// title override above.
+const US_CITY_PINNED_SKIP = new Set(['georgia::columbus']);
 
-function closeUsPlacesModal() {
-  usPlacesModalEl.classList.remove('active');
+function resolvePlaceTileDate(name, stateName) {
+  if (!stateName) return lookupPlaceFoundingDate(name); // states: all 50 pinned, unambiguous
+  const skipKey = `${stateName.toLowerCase()}::${name.toLowerCase()}`;
+  if (!US_CITY_PINNED_SKIP.has(skipKey)) {
+    const pinned = lookupPinnedPlaceDate(name);
+    if (pinned) return Promise.resolve(pinned);
+  }
+  return lookupPlaceFoundingDate(`${name}, ${stateName}`);
 }
 
-// Renders every tile with the monogram fallback immediately (instant,
-// same as the rest of this popup), then swaps in each real photo as its
-// fetch resolves - never blocks the grid from appearing on a slow
-// connection.
-function placeTileHtml(name, extra) {
+// Cache key includes the state so two different states' same-named city
+// (Columbus, Portland, Charleston...) never overwrite each other's
+// resolved date while both happen to be in memory at once.
+function placeCacheKey(name, stateName) {
+  return stateName ? `${stateName}::${name}` : name;
+}
+
+const placeDateCache = {}; // placeCacheKey -> { date, kind, via } | null
+
+// Compact version of EMAX's own tile-corner score ring (emax-category.js's
+// emaxRowScoreHtml) - the "little wheel that shows compatibility without
+// even having to click them" (user, 2026-08-27). null (no birthday yet, or
+// the date hasn't resolved) keeps the plain dash - a ring with nothing to
+// show would be misleading.
+function placeScoreRingHtml(score) {
+  if (score == null) return '<div class="emax-score dim">&mdash;</div>';
+  const r = 18;
+  const circumference = 2 * Math.PI * r;
+  const offset = circumference * (1 - Math.min(100, Math.max(0, score)) / 100);
   return `
-    <div class="emax-tile emax-tile-poster" ${extra}>
-      <div class="emax-tile-media">
-        <div class="emax-tile-media-img" id="usPlaceThumb-${escapeHtml(name)}">${placeMonogram(name)}</div>
+    <div class="emax-row-score">
+      <svg viewBox="0 0 44 44" class="emax-row-score-ring ${scoreClass(score)}">
+        <circle cx="22" cy="22" r="${r}" class="emax-row-score-ring-track"></circle>
+        <circle cx="22" cy="22" r="${r}" class="emax-row-score-ring-fill" style="stroke-dasharray:${circumference};stroke-dashoffset:${offset};"></circle>
+      </svg>
+      <div class="emax-row-score-num">${score}</div>
+    </div>`;
+}
+
+function currentYouDateISO() {
+  const input = document.querySelector('#usPlacesYouRow .person-date[data-person="A"]');
+  return input ? displayToISO(input.value) : null;
+}
+
+// deepScore (not the plain finalScore) so the wheel always matches the
+// headline number the tap-through popup shows for the same pairing.
+function tileScoreFromDates(dateAISO, placeDateISO) {
+  if (!dateAISO || !placeDateISO) return null;
+  const dateA = parseDateInput(dateAISO);
+  const dateB = parseDateInput(placeDateISO);
+  return computeDeepCompatibility(dateA, dateB, false).deepScore;
+}
+
+function refreshTileBadge(key) {
+  const badge = document.getElementById(`usPlaceBadge-${key}`);
+  if (!badge) return;
+  const info = placeDateCache[key];
+  const score = tileScoreFromDates(currentYouDateISO(), info && info.date);
+  badge.innerHTML = placeScoreRingHtml(score);
+}
+
+function loadPlaceScore(name, stateName) {
+  const key = placeCacheKey(name, stateName);
+  resolvePlaceTileDate(name, stateName).then((info) => {
+    placeDateCache[key] = info;
+    refreshTileBadge(key);
+  });
+}
+
+// Re-scores every tile currently showing a badge - wired to the birthday
+// field's own input event so typing a date live-updates every wheel on
+// screen, not just the ones rendered after you finished typing.
+function refreshAllVisibleBadges() {
+  Object.keys(placeDateCache).forEach(refreshTileBadge);
+}
+
+// Renders every tile with the monogram fallback immediately (instant),
+// then swaps in each real photo and score ring as they resolve - never
+// blocks the grid from appearing on a slow connection. .emax-tile-circle
+// + the .logo media treatment (object-fit:contain, not cover) keeps a
+// landscape flag/skyline photo fully visible instead of harshly cropped
+// into a tall poster frame (user, 2026-08-27: "the pictures arent fully
+// fitting it theyre cropped weird").
+function placeTileHtml(name, key, extra) {
+  return `
+    <div class="emax-tile emax-tile-circle" ${extra}>
+      <div class="emax-tile-media logo">
+        <div class="emax-tile-media-img" id="usPlaceThumb-${escapeHtml(key)}">${placeMonogram(name)}</div>
+        <div class="emax-tile-badge" id="usPlaceBadge-${escapeHtml(key)}">${placeScoreRingHtml(null)}</div>
       </div>
       <div class="emax-tile-info">
         <div class="emax-tile-name">${escapeHtml(name)}</div>
@@ -187,25 +291,28 @@ function placeTileHtml(name, extra) {
   `;
 }
 
-function loadPlaceThumb(name) {
-  fetchPlaceImage(name).then((url) => {
+function loadPlaceThumb(key, queryTitle) {
+  fetchPlaceImage(queryTitle).then((url) => {
     if (!url) return;
-    const el = document.getElementById(`usPlaceThumb-${name}`);
+    const el = document.getElementById(`usPlaceThumb-${key}`);
     if (el) el.innerHTML = `<img src="${escapeHtml(url)}" alt="" loading="lazy">`;
   });
 }
 
+// Which back-target #usPlacesBack resolves to - 'states' backs all the way
+// out to the country picker, 'cities' backs up one level to the states grid.
+let usPlacesLevel = 'states';
+
 function renderUsStatesGrid() {
-  document.getElementById('usPlacesModalTitle').textContent = 'A U.S. State';
-  document.getElementById('usPlacesModalBody').innerHTML = `
-    <div class="emax-tile-grid">
-      ${US_PLACES.map((p) => placeTileHtml(p.state, `data-state="${escapeHtml(p.state)}"`)).join('')}
-    </div>
-  `;
-  US_PLACES.forEach((p) => loadPlaceThumb(p.state));
+  usPlacesLevel = 'states';
+  document.getElementById('usPlacesHeading').textContent = 'A U.S. State';
+  document.getElementById('usPlacesGrid').innerHTML = US_PLACES.map((p) => {
+    const key = placeCacheKey(p.state, null);
+    return placeTileHtml(p.state, key, `data-state="${escapeHtml(p.state)}"`);
+  }).join('');
   // "or pick a city" sits under each tile's name, added after the grid
   // renders so it doesn't fight the tile's own click target.
-  document.querySelectorAll('#usPlacesModalBody .emax-tile[data-state]').forEach((tile) => {
+  document.querySelectorAll('#usPlacesGrid .emax-tile[data-state]').forEach((tile) => {
     const link = document.createElement('button');
     link.type = 'button';
     link.className = 'us-cities-link';
@@ -213,43 +320,52 @@ function renderUsStatesGrid() {
     link.textContent = 'or pick a city';
     tile.querySelector('.emax-tile-info').appendChild(link);
   });
-}
-
-// User's call, 2026-08-26: tapping a state selects it right away (same
-// instant path as the rest of this popup) - the "or pick a city" link on
-// each tile is the one way into this drill-down, mirroring EMAX's own
-// item-popup-stacks-a-second-popup precedent (emax-popup.js).
-function renderUsCitiesGrid(stateName) {
-  const place = US_PLACES.find((p) => p.state === stateName);
-  if (!place) return;
-  document.getElementById('usPlacesModalTitle').textContent = stateName;
-  document.getElementById('usPlacesModalBody').innerHTML = `
-    <a href="#" class="emax-modal-back" id="usCitiesBack">&larr; Back to states</a>
-    <div class="emax-tile-grid">
-      ${place.cities.map((city) => placeTileHtml(city, `data-city="${escapeHtml(city)}"`)).join('')}
-    </div>
-  `;
-  place.cities.forEach((city) => loadPlaceThumb(city));
-  document.getElementById('usCitiesBack').addEventListener('click', (e) => {
-    e.preventDefault();
-    renderUsStatesGrid();
+  US_PLACES.forEach((p) => {
+    loadPlaceThumb(placeCacheKey(p.state, null), US_STATE_IMAGE_TITLE[p.state] || p.state);
+    loadPlaceScore(p.state, null);
   });
 }
 
-function openUsPlacesModal() {
-  renderUsStatesGrid();
-  usPlacesModalEl.classList.add('active');
+// User's call, 2026-08-26: tapping a state selects it right away - the
+// "or pick a city" link on each tile is the one way into this drill-down.
+function renderUsCitiesGrid(stateName) {
+  const place = US_PLACES.find((p) => p.state === stateName);
+  if (!place) return;
+  usPlacesLevel = 'cities';
+  document.getElementById('usPlacesHeading').textContent = stateName;
+  document.getElementById('usPlacesGrid').innerHTML = place.cities.map((city) => {
+    const key = placeCacheKey(city, stateName);
+    return placeTileHtml(city, key, `data-city="${escapeHtml(city)}" data-state="${escapeHtml(stateName)}"`);
+  }).join('');
+  place.cities.forEach((city) => {
+    loadPlaceThumb(placeCacheKey(city, stateName), `${city}, ${stateName}`);
+    loadPlaceScore(city, stateName);
+  });
 }
 
-document.getElementById('usPlacesModalClose').addEventListener('click', closeUsPlacesModal);
-usPlacesModalEl.addEventListener('click', (e) => {
-  if (e.target === usPlacesModalEl) closeUsPlacesModal();
-});
+// Tapping any tile calculates and opens the results popup immediately -
+// "you can calculate compatibility from there no need to autograb the
+// date and make you calculate again" (user, 2026-08-27). Uses the same
+// runCompatCalculation the Calculate button itself calls, so the popup is
+// pixel-identical either way.
+function handlePlaceTileTap(name, stateNameOrNull) {
+  const dateAISO = currentYouDateISO();
+  if (!dateAISO) { alert('Enter your birthday above first.'); return; }
+  const nameA = document.querySelector('#usPlacesYouRow .person-name[data-person="A"]').value.trim() || 'You';
+  const key = placeCacheKey(name, stateNameOrNull);
+  const cached = placeDateCache[key];
+  const infoPromise = (cached && cached.date) ? Promise.resolve(cached) : resolvePlaceTileDate(name, stateNameOrNull);
+  infoPromise.then((info) => {
+    if (!info || !info.date) { alert(`No exact date found for ${name} yet - try again in a moment, or search for it manually.`); return; }
+    placeDateCache[key] = info;
+    runCompatCalculation(dateAISO, info.date, nameA, name);
+  });
+}
 
-// Delegated once on the static body element - its innerHTML is swapped
+// Delegated once on the static grid element - its innerHTML is swapped
 // between the states grid and a state's cities grid, so listeners bound
 // to individual tiles would be lost on every re-render.
-document.getElementById('usPlacesModalBody').addEventListener('click', (e) => {
+document.getElementById('usPlacesGrid').addEventListener('click', (e) => {
   const citiesLink = e.target.closest('.us-cities-link');
   if (citiesLink) {
     e.stopPropagation();
@@ -258,15 +374,43 @@ document.getElementById('usPlacesModalBody').addEventListener('click', (e) => {
   }
   const cityTile = e.target.closest('.emax-tile[data-city]');
   if (cityTile) {
-    closeUsPlacesModal();
-    selectSuggestion({ title: cityTile.dataset.city });
+    handlePlaceTileTap(cityTile.dataset.city, cityTile.dataset.state);
     return;
   }
   const stateTile = e.target.closest('.emax-tile[data-state]');
-  if (stateTile) {
-    closeUsPlacesModal();
-    selectSuggestion({ title: stateTile.dataset.state });
+  if (stateTile) handlePlaceTileTap(stateTile.dataset.state, null);
+});
+
+const usPlacesScreenEl = document.getElementById('usPlacesScreen');
+const usPlacesTitleRowEl = document.getElementById('usPlacesTitleRow');
+
+// Reworked 2026-08-27 from a modal-overlay popup into a real full-screen
+// section (user: "the whole thing shouldnt be a popup it should just take
+// you into its own screen with the states") - same display-swap pattern
+// modeSelect/placeCountrySelect already use, not .active on an overlay.
+function openUsPlacesScreen() {
+  personInputsEl.innerHTML = ''; // only one Person-A field lives in the DOM at a time
+  usPlacesTitleRowEl.style.display = '';
+  usPlacesScreenEl.style.display = '';
+  const youRow = document.getElementById('usPlacesYouRow');
+  youRow.innerHTML = youInputHTML();
+  const dateInput = youRow.querySelector('.person-date[data-person="A"]');
+  attachDateMask(dateInput);
+  dateInput.addEventListener('input', refreshAllVisibleBadges);
+  renderUsStatesGrid();
+}
+
+document.getElementById('usPlacesBack').addEventListener('click', (e) => {
+  e.preventDefault();
+  if (usPlacesLevel === 'cities') {
+    renderUsStatesGrid();
+    return;
   }
+  usPlacesTitleRowEl.style.display = 'none';
+  usPlacesScreenEl.style.display = 'none';
+  document.getElementById('usPlacesYouRow').innerHTML = '';
+  placeCountryTitleRowEl.style.display = '';
+  placeCountrySelectEl.style.display = 'grid';
 });
 
 // "You" side: birthday only, prefilled from the saved profile so a
@@ -484,6 +628,11 @@ const placeCountrySelectEl = document.getElementById('placeCountrySelect');
 const placeCountryTitleRowEl = document.getElementById('placeCountryTitleRow');
 
 function enterCompatForm() {
+  // Defensive - the US-places screen and this form share personInputsEl's
+  // one Person-A field and must never both be visible at once.
+  usPlacesTitleRowEl.style.display = 'none';
+  usPlacesScreenEl.style.display = 'none';
+  document.getElementById('usPlacesYouRow').innerHTML = '';
   compatFormEl.classList.add('active');
   closeCompatModal();
   compatResultsEl.innerHTML = '';
@@ -512,10 +661,10 @@ document.querySelectorAll('#placeCountrySelect .mode-card').forEach((card) => {
   card.addEventListener('click', () => {
     placeCountryTitleRowEl.style.display = 'none';
     placeCountrySelectEl.style.display = 'none';
-    enterCompatForm();
     if (card.dataset.country === 'us') {
-      openUsPlacesModal();
+      openUsPlacesScreen();
     } else {
+      enterCompatForm();
       const searchInput = document.querySelector('.source-search[data-person="B"]');
       if (searchInput) searchInput.focus();
     }
@@ -553,11 +702,29 @@ function parseDateInput(value) {
   return date;
 }
 
-document.getElementById('calculateBtn').addEventListener('click', () => {
+// Shared by the Calculate button and the US-places browser's tap-a-tile
+// flow ("you can calculate compatibility from there no need to... make
+// you calculate again", user 2026-08-27) - both paths land on the exact
+// same popup. isPersonModeOverride lets the tile-tap path (always place
+// mode) pass its own fork explicitly rather than reading the page-level
+// `mode` global, which the tile tap never actually changes.
+function runCompatCalculation(dateAISO, dateBISO, nameA, nameB, isPersonModeOverride) {
   if (!c13Entitled() && c13MeterLeft('compat') <= 0) {
     c13OpenPaywall('compat');
     return;
   }
+  const dateA = parseDateInput(dateAISO);
+  const dateB = parseDateInput(dateBISO);
+  const isPerson = isPersonModeOverride != null ? isPersonModeOverride : mode === 'person';
+  const result = computeCompatibility(dateA, dateB);
+  const deep = computeDeepCompatibility(dateA, dateB, isPerson);
+  renderCompatHero(compatResultsEl, result, nameA, nameB, { dateA, dateB, pillDateA: dateA, pillDateB: dateB, pillPersonMode: isPerson, deep });
+  compatModalOverlayEl.classList.add('active');
+  c13MeterUse('compat');
+  refreshCompatMeterLine();
+}
+
+document.getElementById('calculateBtn').addEventListener('click', () => {
   const dateAISO = displayToISO(document.querySelector('.person-date[data-person="A"]').value);
   if (!dateAISO) {
     alert('Please enter a valid date (MM/DD/YYYY) for your birthday.');
@@ -568,22 +735,8 @@ document.getElementById('calculateBtn').addEventListener('click', () => {
     alert(`Please enter or look up a valid date for the ${mode}.`);
     return;
   }
-
-  const dateA = parseDateInput(dateAISO);
-  const dateB = parseDateInput(dateBISO);
   const nameA = document.querySelector('.person-name[data-person="A"]').value.trim() || 'You';
   const nameB = document.querySelector('.person-name[data-person="B"]').value.trim()
     || (mode === 'person' ? 'Them' : (mode === 'place' ? 'This place' : 'This one'));
-
-  // Person runs the person-vs-person deep blend; Object/Place run the
-  // event-date imprint blend - same isPersonMode fork as numerology-app.
-  const isPerson = mode === 'person';
-  const result = computeCompatibility(dateA, dateB);
-  const deep = computeDeepCompatibility(dateA, dateB, isPerson);
-  renderCompatHero(compatResultsEl, result, nameA, nameB, { dateA, dateB, pillDateA: dateA, pillDateB: dateB, pillPersonMode: isPerson, deep });
-  compatModalOverlayEl.classList.add('active');
-  // A successful render is what spends a free check - a validation error
-  // above never costs one.
-  c13MeterUse('compat');
-  refreshCompatMeterLine();
+  runCompatCalculation(dateAISO, dateBISO, nameA, nameB);
 });
