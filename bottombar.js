@@ -90,6 +90,16 @@
       padding: 7px max(8px, env(safe-area-inset-right)) calc(7px + env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left));
       background: linear-gradient(to top, #020202 0%, rgba(3,3,3,.98) 70%, rgba(3,3,3,.94) 100%);
       border-top: 1px solid rgba(232,185,76,.12); }
+    /* Standalone floor (2026-08-27, user: gap of unpainted background below
+       the bar in the installed home-screen app) - env(safe-area-inset-bottom)
+       can resolve to 0 in some standalone WKWebView configurations even
+       though a real home-indicator strip is there, leaving that strip
+       unpainted below the bar's own edge. max() keeps the real value
+       whenever env() reports one honestly and only floors it to the
+       standard ~34pt home-indicator height when it doesn't. */
+    html.bb-standalone .bb-bar {
+      padding-bottom: calc(7px + max(env(safe-area-inset-bottom), 34px));
+    }
     .bb-tab { position: relative; height: 100%; width: 100%;
       display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px;
       background: none; border: none; cursor: pointer;

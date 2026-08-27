@@ -368,13 +368,24 @@
   };
 
   const css = `
+    /* Plain block layout, not flex align-items:center - a flex container
+       centering an item taller than its own viewport clips the item's top
+       out of reach of overflow-y:auto's scroll (a well-known flexbox bug),
+       which is exactly why this popup wasn't centering right on shorter
+       screens (user, 2026-08-27). margin:auto on the inner box handles
+       horizontal centering fine on its own and never clips vertically. */
     #c13Paywall { position: fixed; inset: 0; z-index: 950; background: rgba(0,0,0,.92);
-      display: flex; align-items: center; justify-content: center; overflow-y: auto; }
+      overflow-y: auto; }
     .c13-pw-inner { position: relative; width: min(430px, calc(100% - 28px)); margin: 24px auto;
       background: var(--panel, #0a0f1a); border: 1px solid var(--border, #223048);
       border-radius: 18px; padding: 26px 18px 18px; text-align: center;
       box-shadow: 0 0 60px rgba(245,197,66,.12); }
-    .c13-pw-close { position: absolute; top: 8px; right: 12px; background: none; border: none;
+    /* A bare 26px glyph with no padding has almost no real hit area on
+       mobile - widened to a proper ~40px tap target without changing
+       where the "x" itself visually sits (user, 2026-08-27: "hard to
+       tap"). */
+    .c13-pw-close { position: absolute; top: 2px; right: 2px; background: none; border: none;
+      width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;
       color: var(--muted, #5b6a80); font-size: 26px; cursor: pointer; line-height: 1; }
     .c13-pw-head { font-family: var(--gk-display, inherit); font-size: 24px; font-weight: 700;
       color: var(--yellow, #f5c542); letter-spacing: .02em; }

@@ -257,31 +257,46 @@ function refreshTileBadge(key) {
 
 function loadPlaceScore(name, stateName) {
   const key = placeCacheKey(name, stateName);
-  resolvePlaceTileDate(name, stateName).then((info) => {
+  return resolvePlaceTileDate(name, stateName).then((info) => {
     placeDateCache[key] = info;
     refreshTileBadge(key);
   });
 }
 
-// Re-scores every tile currently showing a badge - wired to the birthday
-// field's own input event so typing a date live-updates every wheel on
-// screen, not just the ones rendered after you finished typing.
-function refreshAllVisibleBadges() {
-  Object.keys(placeDateCache).forEach(refreshTileBadge);
+// Best-to-worst (user, 2026-08-27: "make it also auto organize from best
+// to worst") - same ordering rule as EMAX's own scoredEntries(): highest
+// score first, scoreless entries sort last, alphabetical among themselves
+// (so the grid is never scrambled while dates are still resolving or
+// before a birthday's been typed in at all).
+function sortPlacesByScore(names, stateName, dateAISO) {
+  return names
+    .map((name) => {
+      const info = placeDateCache[placeCacheKey(name, stateName)];
+      return { name, score: tileScoreFromDates(dateAISO, info && info.date) };
+    })
+    .sort((a, b) => {
+      if (a.score == null && b.score == null) return a.name.localeCompare(b.name);
+      if (a.score == null) return 1;
+      if (b.score == null) return -1;
+      return b.score - a.score;
+    })
+    .map((x) => x.name);
 }
 
 // Renders every tile with the monogram fallback immediately (instant),
-// then swaps in each real photo and score ring as they resolve - never
-// blocks the grid from appearing on a slow connection. .emax-tile-circle
-// + the .logo media treatment (object-fit:contain, not cover) keeps a
-// landscape flag/skyline photo fully visible instead of harshly cropped
-// into a tall poster frame (user, 2026-08-27: "the pictures arent fully
-// fitting it theyre cropped weird").
-function placeTileHtml(name, key, extra) {
+// or the already-cached photo if one's been fetched before (a repaint -
+// re-sorting - must never regress an already-loaded photo back to its
+// placeholder). .emax-tile-circle + the .logo media treatment
+// (object-fit:contain, not cover) keeps a landscape flag/skyline photo
+// fully visible instead of harshly cropped into a tall poster frame
+// (user, 2026-08-27: "the pictures arent fully fitting it theyre cropped
+// weird").
+function placeTileHtml(name, key, imageUrl, extra) {
+  const media = imageUrl ? `<img src="${escapeHtml(imageUrl)}" alt="" loading="lazy">` : placeMonogram(name);
   return `
     <div class="emax-tile emax-tile-circle" ${extra}>
       <div class="emax-tile-media logo">
-        <div class="emax-tile-media-img" id="usPlaceThumb-${escapeHtml(key)}">${placeMonogram(name)}</div>
+        <div class="emax-tile-media-img" id="usPlaceThumb-${escapeHtml(key)}">${media}</div>
         <div class="emax-tile-badge" id="usPlaceBadge-${escapeHtml(key)}">${placeScoreRingHtml(null)}</div>
       </div>
       <div class="emax-tile-info">
@@ -289,6 +304,10 @@ function placeTileHtml(name, key, extra) {
       </div>
     </div>
   `;
+}
+
+function cachedPlaceImageUrl(queryTitle) {
+  return Object.prototype.hasOwnProperty.call(usPlaceImageCache, queryTitle) ? usPlaceImageCache[queryTitle] : null;
 }
 
 function loadPlaceThumb(key, queryTitle) {
@@ -299,19 +318,9 @@ function loadPlaceThumb(key, queryTitle) {
   });
 }
 
-// Which back-target #usPlacesBack resolves to - 'states' backs all the way
-// out to the country picker, 'cities' backs up one level to the states grid.
-let usPlacesLevel = 'states';
-
-function renderUsStatesGrid() {
-  usPlacesLevel = 'states';
-  document.getElementById('usPlacesHeading').textContent = 'A U.S. State';
-  document.getElementById('usPlacesGrid').innerHTML = US_PLACES.map((p) => {
-    const key = placeCacheKey(p.state, null);
-    return placeTileHtml(p.state, key, `data-state="${escapeHtml(p.state)}"`);
-  }).join('');
-  // "or pick a city" sits under each tile's name, added after the grid
-  // renders so it doesn't fight the tile's own click target.
+// "or pick a city" sits under each tile's name, added after the grid
+// paints so it doesn't fight the tile's own click target.
+function attachCityLinks() {
   document.querySelectorAll('#usPlacesGrid .emax-tile[data-state]').forEach((tile) => {
     const link = document.createElement('button');
     link.type = 'button';
@@ -320,10 +329,51 @@ function renderUsStatesGrid() {
     link.textContent = 'or pick a city';
     tile.querySelector('.emax-tile-info').appendChild(link);
   });
-  US_PLACES.forEach((p) => {
-    loadPlaceThumb(placeCacheKey(p.state, null), US_STATE_IMAGE_TITLE[p.state] || p.state);
-    loadPlaceScore(p.state, null);
-  });
+}
+
+// Which back-target #usPlacesBack resolves to - 'states' backs all the way
+// out to the country picker, 'cities' backs up one level to the states grid.
+let usPlacesLevel = 'states';
+let usPlacesCurrentState = null;
+
+// Paints from whatever's already known (placeDateCache/usPlaceImageCache) -
+// no new fetches - so it's safe to call on every resort (birthday typed,
+// or a batch of date lookups just resolved) without re-requesting
+// anything or flashing already-loaded photos back to their placeholder.
+function paintUsStatesGrid() {
+  const dateAISO = currentYouDateISO();
+  const names = dateAISO ? sortPlacesByScore(US_PLACES.map((p) => p.state), null, dateAISO) : US_PLACES.map((p) => p.state);
+  document.getElementById('usPlacesHeading').textContent = 'A U.S. State';
+  document.getElementById('usPlacesGrid').innerHTML = names.map((name) => {
+    const key = placeCacheKey(name, null);
+    const imageUrl = cachedPlaceImageUrl(US_STATE_IMAGE_TITLE[name] || name);
+    return placeTileHtml(name, key, imageUrl, `data-state="${escapeHtml(name)}"`);
+  }).join('');
+  attachCityLinks();
+  names.forEach((name) => refreshTileBadge(placeCacheKey(name, null)));
+}
+
+function renderUsStatesGrid() {
+  usPlacesLevel = 'states';
+  usPlacesCurrentState = null;
+  paintUsStatesGrid();
+  const resolved = US_PLACES.map((p) => loadPlaceScore(p.state, null));
+  US_PLACES.forEach((p) => loadPlaceThumb(placeCacheKey(p.state, null), US_STATE_IMAGE_TITLE[p.state] || p.state));
+  Promise.all(resolved).then(resortUsPlacesGrid);
+}
+
+function paintUsCitiesGrid(stateName) {
+  const place = US_PLACES.find((p) => p.state === stateName);
+  if (!place) return;
+  const dateAISO = currentYouDateISO();
+  const cities = dateAISO ? sortPlacesByScore(place.cities, stateName, dateAISO) : place.cities;
+  document.getElementById('usPlacesHeading').textContent = stateName;
+  document.getElementById('usPlacesGrid').innerHTML = cities.map((city) => {
+    const key = placeCacheKey(city, stateName);
+    const imageUrl = cachedPlaceImageUrl(`${city}, ${stateName}`);
+    return placeTileHtml(city, key, imageUrl, `data-city="${escapeHtml(city)}" data-state="${escapeHtml(stateName)}"`);
+  }).join('');
+  cities.forEach((city) => refreshTileBadge(placeCacheKey(city, stateName)));
 }
 
 // User's call, 2026-08-26: tapping a state selects it right away - the
@@ -332,15 +382,27 @@ function renderUsCitiesGrid(stateName) {
   const place = US_PLACES.find((p) => p.state === stateName);
   if (!place) return;
   usPlacesLevel = 'cities';
-  document.getElementById('usPlacesHeading').textContent = stateName;
-  document.getElementById('usPlacesGrid').innerHTML = place.cities.map((city) => {
-    const key = placeCacheKey(city, stateName);
-    return placeTileHtml(city, key, `data-city="${escapeHtml(city)}" data-state="${escapeHtml(stateName)}"`);
-  }).join('');
-  place.cities.forEach((city) => {
-    loadPlaceThumb(placeCacheKey(city, stateName), `${city}, ${stateName}`);
-    loadPlaceScore(city, stateName);
-  });
+  usPlacesCurrentState = stateName;
+  paintUsCitiesGrid(stateName);
+  const resolved = place.cities.map((city) => loadPlaceScore(city, stateName));
+  place.cities.forEach((city) => loadPlaceThumb(placeCacheKey(city, stateName), `${city}, ${stateName}`));
+  Promise.all(resolved).then(resortUsPlacesGrid);
+}
+
+// Repaints (and so re-sorts) whichever level is currently on screen, from
+// data that's already resolved - never kicks off new fetches itself, so
+// it's safe to call both after a batch of lookups resolves and on every
+// birthday keystroke without runaway re-fetching.
+function resortUsPlacesGrid() {
+  if (usPlacesScreenEl.style.display === 'none') return; // navigated away already
+  if (usPlacesLevel === 'cities') paintUsCitiesGrid(usPlacesCurrentState);
+  else paintUsStatesGrid();
+}
+
+let usPlacesResortTimer = null;
+function scheduleUsPlacesResort() {
+  clearTimeout(usPlacesResortTimer);
+  usPlacesResortTimer = setTimeout(resortUsPlacesGrid, 200);
 }
 
 // Tapping any tile calculates and opens the results popup immediately -
@@ -396,7 +458,7 @@ function openUsPlacesScreen() {
   youRow.innerHTML = youInputHTML();
   const dateInput = youRow.querySelector('.person-date[data-person="A"]');
   attachDateMask(dateInput);
-  dateInput.addEventListener('input', refreshAllVisibleBadges);
+  dateInput.addEventListener('input', scheduleUsPlacesResort);
   renderUsStatesGrid();
 }
 
