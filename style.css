@@ -1638,6 +1638,24 @@ body::after {
   color: var(--yellow);
 }
 
+/* Marks a mode-card as Code13+ only, right on the card so the lock is
+   never a surprise after tapping (2026-08-27, user: "make sure to add a
+   paywall on the united states, code13+ can have access to it"). */
+.mode-badge-lock {
+  display: inline-block;
+  vertical-align: middle;
+  margin-left: 6px;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  color: var(--acc-text, #e8b04b);
+  border: 1px solid var(--acc-text, #e8b04b);
+  border-radius: 999px;
+  padding: 2px 7px;
+  white-space: nowrap;
+}
+
 .mode-desc {
   font-size: 12px;
   color: var(--muted);

@@ -721,6 +721,14 @@ document.querySelectorAll('#modeSelect .mode-card').forEach((card) => {
 
 document.querySelectorAll('#placeCountrySelect .mode-card').forEach((card) => {
   card.addEventListener('click', () => {
+    // United States is fully Code13+ (2026-08-27, user: "code13+ can have
+    // access to it") - not the 31-free-check compat meter every other
+    // place lookup uses, a hard lock like Database's add-entry gate. Stays
+    // on the country-select screen (never opens) until entitled.
+    if (card.dataset.country === 'us' && !c13Entitled()) {
+      c13OpenPaywall('compat');
+      return;
+    }
     placeCountryTitleRowEl.style.display = 'none';
     placeCountrySelectEl.style.display = 'none';
     if (card.dataset.country === 'us') {
