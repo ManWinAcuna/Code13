@@ -13,7 +13,7 @@
 <link rel="icon" href="favicon-64.png?v=3" sizes="64x64">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <title>Compatibility Calculator</title>
-<link rel="stylesheet" href="style.css?v=6">
+<link rel="stylesheet" href="style.css?v=7">
 <link rel="stylesheet" href="godlike.css?v=45">
 </head>
 <body>
@@ -62,6 +62,26 @@
     </button>
   </div>
 
+  <!-- Place mode's own follow-up question (2026-08-26, user: "once you
+       click place another menu shows up again and prompts us or other") -
+       same visual language as the picker above it, not a couple of pills
+       tucked into the form. -->
+  <div class="compat-title-row" id="placeCountryTitleRow" style="display:none">
+    <a href="#" class="back-link" id="backToModesFromPlace">&larr; Change comparison</a>
+  </div>
+  <div class="compat-mode-select" id="placeCountrySelect" style="display:none">
+    <button class="mode-card" data-country="us">
+      <div class="mode-icon">🇺🇸</div>
+      <div class="mode-title">United States</div>
+      <div class="mode-desc">Browse every state, and drill into its major cities.</div>
+    </button>
+    <button class="mode-card" data-country="other">
+      <div class="mode-icon">🌍</div>
+      <div class="mode-title">Other Country</div>
+      <div class="mode-desc">Search any city, state, or country by name.</div>
+    </button>
+  </div>
+
   <div class="compat-form" id="compatForm">
     <a href="#" class="back-link" id="backToModes">&larr; Change mode</a>
 
@@ -83,9 +103,9 @@
   </div>
 </div>
 
-<!-- Place mode's "United States" quick-pick (2026-08-26): reuses EMAX's
-     own .category-grid/.category-tile classes (style.css) so it matches
-     that browse style exactly without new CSS for the grid itself. -->
+<!-- Place mode's "United States" popup (2026-08-26): reuses EMAX's own
+     .emax-tile-grid/.emax-tile-poster photo-tile classes (style.css) so
+     it matches that browse style exactly, real photos included. -->
 <div class="modal-overlay" id="usPlacesModalOverlay">
   <div class="modal-box">
     <button class="modal-close" id="usPlacesModalClose" title="Close">&times;</button>
@@ -112,7 +132,7 @@
 <script src="banks/c13-bank-viet-pairs.js?v=2"></script>
 <script src="banks/c13-bank-western-pairs.js?v=2"></script>
 <script src="c13-copy.js?v=7"></script>
-<script src="compatibility.js?v=10"></script>
+<script src="compatibility.js?v=11"></script>
 <script src="godlike.js?v=2"></script>
 <script src="c13-tour.js?v=6"></script>
 </body>

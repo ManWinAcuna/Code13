@@ -130,25 +130,89 @@ const US_PLACES = [
   { state: 'Wyoming', cities: ['Cheyenne', 'Casper'] },
 ];
 
+// Real photos, "literally just like emax" (user, 2026-08-26) - same
+// technique as emax-popup.js's emaxFetchImage: Wikipedia's page/summary
+// endpoint returns a real thumbnail in one request, no key needed. Cached
+// in localStorage (place names don't change) so browsing the grid twice
+// never re-fetches. A miss (or offline) leaves the colored-initials
+// monogram fallback up - never a broken image or a guessed picture.
+const US_PLACE_IMAGE_CACHE_KEY = 'code13_us_place_images_v1';
+let usPlaceImageCache = {};
+try { usPlaceImageCache = JSON.parse(localStorage.getItem(US_PLACE_IMAGE_CACHE_KEY)) || {}; } catch (e) { /* ignore */ }
+
+function fetchPlaceImage(title) {
+  if (Object.prototype.hasOwnProperty.call(usPlaceImageCache, title)) return Promise.resolve(usPlaceImageCache[title]);
+  return fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`)
+    .then((res) => res.json())
+    .then((data) => (data.thumbnail && data.thumbnail.source) || null)
+    .catch(() => null)
+    .then((url) => {
+      usPlaceImageCache[title] = url;
+      try { localStorage.setItem(US_PLACE_IMAGE_CACHE_KEY, JSON.stringify(usPlaceImageCache)); } catch (e) { /* storage full - refetch next time */ }
+      return url;
+    });
+}
+
+// Same monogram EMAX itself falls back to (emax-popup.js's emaxMonogram) -
+// a deterministic color from the name's own characters, not random, so
+// the same place always gets the same fallback tint.
+function placeMonogram(name) {
+  const initials = name.trim().split(/\s+/).slice(0, 2).map((w) => w[0] || '').join('').toUpperCase() || '?';
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) hash = (hash * 31 + name.charCodeAt(i)) >>> 0;
+  const hue = hash % 360;
+  return `<div class="emax-monogram" style="--emax-hue:${hue}">${escapeHtml(initials)}</div>`;
+}
+
 const usPlacesModalEl = document.getElementById('usPlacesModalOverlay');
 
 function closeUsPlacesModal() {
   usPlacesModalEl.classList.remove('active');
 }
 
+// Renders every tile with the monogram fallback immediately (instant,
+// same as the rest of this popup), then swaps in each real photo as its
+// fetch resolves - never blocks the grid from appearing on a slow
+// connection.
+function placeTileHtml(name, extra) {
+  return `
+    <div class="emax-tile emax-tile-poster" ${extra}>
+      <div class="emax-tile-media">
+        <div class="emax-tile-media-img" id="usPlaceThumb-${escapeHtml(name)}">${placeMonogram(name)}</div>
+      </div>
+      <div class="emax-tile-info">
+        <div class="emax-tile-name">${escapeHtml(name)}</div>
+      </div>
+    </div>
+  `;
+}
+
+function loadPlaceThumb(name) {
+  fetchPlaceImage(name).then((url) => {
+    if (!url) return;
+    const el = document.getElementById(`usPlaceThumb-${name}`);
+    if (el) el.innerHTML = `<img src="${escapeHtml(url)}" alt="" loading="lazy">`;
+  });
+}
+
 function renderUsStatesGrid() {
   document.getElementById('usPlacesModalTitle').textContent = 'A U.S. State';
   document.getElementById('usPlacesModalBody').innerHTML = `
-    <div class="category-grid">
-      ${US_PLACES.map((p) => `
-        <div class="category-tile" data-state="${escapeHtml(p.state)}">
-          <div class="tile-icon">📍</div>
-          <div class="tile-name">${escapeHtml(p.state)}</div>
-          <button type="button" class="us-cities-link" data-state="${escapeHtml(p.state)}">or pick a city</button>
-        </div>
-      `).join('')}
+    <div class="emax-tile-grid">
+      ${US_PLACES.map((p) => placeTileHtml(p.state, `data-state="${escapeHtml(p.state)}"`)).join('')}
     </div>
   `;
+  US_PLACES.forEach((p) => loadPlaceThumb(p.state));
+  // "or pick a city" sits under each tile's name, added after the grid
+  // renders so it doesn't fight the tile's own click target.
+  document.querySelectorAll('#usPlacesModalBody .emax-tile[data-state]').forEach((tile) => {
+    const link = document.createElement('button');
+    link.type = 'button';
+    link.className = 'us-cities-link';
+    link.dataset.state = tile.dataset.state;
+    link.textContent = 'or pick a city';
+    tile.querySelector('.emax-tile-info').appendChild(link);
+  });
 }
 
 // User's call, 2026-08-26: tapping a state selects it right away (same
@@ -161,15 +225,11 @@ function renderUsCitiesGrid(stateName) {
   document.getElementById('usPlacesModalTitle').textContent = stateName;
   document.getElementById('usPlacesModalBody').innerHTML = `
     <a href="#" class="emax-modal-back" id="usCitiesBack">&larr; Back to states</a>
-    <div class="category-grid">
-      ${place.cities.map((city) => `
-        <div class="category-tile" data-city="${escapeHtml(city)}">
-          <div class="tile-icon">🏙️</div>
-          <div class="tile-name">${escapeHtml(city)}</div>
-        </div>
-      `).join('')}
+    <div class="emax-tile-grid">
+      ${place.cities.map((city) => placeTileHtml(city, `data-city="${escapeHtml(city)}"`)).join('')}
     </div>
   `;
+  place.cities.forEach((city) => loadPlaceThumb(city));
   document.getElementById('usCitiesBack').addEventListener('click', (e) => {
     e.preventDefault();
     renderUsStatesGrid();
@@ -196,13 +256,13 @@ document.getElementById('usPlacesModalBody').addEventListener('click', (e) => {
     renderUsCitiesGrid(citiesLink.dataset.state);
     return;
   }
-  const cityTile = e.target.closest('.category-tile[data-city]');
+  const cityTile = e.target.closest('.emax-tile[data-city]');
   if (cityTile) {
     closeUsPlacesModal();
     selectSuggestion({ title: cityTile.dataset.city });
     return;
   }
-  const stateTile = e.target.closest('.category-tile[data-state]');
+  const stateTile = e.target.closest('.emax-tile[data-state]');
   if (stateTile) {
     closeUsPlacesModal();
     selectSuggestion({ title: stateTile.dataset.state });
@@ -231,13 +291,6 @@ function youInputHTML() {
 function otherInputHTML() {
   const copy = MODE_COPY[mode];
   const dbOption = mode === 'person' ? '<option value="database">🗂 My Database</option>' : '';
-  // Place mode's quick-pick pills - a second entry path alongside the
-  // search box below, not a replacement for it.
-  const placePicks = mode === 'place' ? `
-      <div class="place-quickpicks">
-        <button type="button" class="place-pick-btn" id="placePickUS">🇺🇸 United States</button>
-        <button type="button" class="place-pick-btn" id="placePickOther">🌍 Other Country</button>
-      </div>` : '';
   return `
     <div class="person-input box" data-person="B">
       <div class="box-label">${copy.label}</div>
@@ -246,7 +299,6 @@ function otherInputHTML() {
         ${dbOption}
         <option value="manual">✍️ Type the date myself</option>
       </select>
-      ${placePicks}
       <div class="player-search-wrap source-search-wrap" data-person="B">
         <input type="text" class="player-search source-search" data-person="B" placeholder="${copy.search}" autocomplete="off">
         <div class="player-suggestions source-suggestions" data-person="B"></div>
@@ -407,16 +459,6 @@ function wireInputs() {
     const match = searchMatches[Number(item.dataset.index)];
     if (match) selectSuggestion(match);
   });
-
-  const usPickBtn = document.getElementById('placePickUS');
-  if (usPickBtn) usPickBtn.addEventListener('click', openUsPlacesModal);
-  const otherPickBtn = document.getElementById('placePickOther');
-  if (otherPickBtn) {
-    otherPickBtn.addEventListener('click', () => {
-      const searchInput = document.querySelector('.source-search[data-person="B"]');
-      if (searchInput) searchInput.focus();
-    });
-  }
 }
 
 document.addEventListener('click', (e) => {
@@ -438,24 +480,66 @@ function refreshCompatMeterLine() {
   line.innerHTML = c13MeterLineHtml('compat');
 }
 
-document.querySelectorAll('.mode-card').forEach((card) => {
+const placeCountrySelectEl = document.getElementById('placeCountrySelect');
+const placeCountryTitleRowEl = document.getElementById('placeCountryTitleRow');
+
+function enterCompatForm() {
+  compatFormEl.classList.add('active');
+  closeCompatModal();
+  compatResultsEl.innerHTML = '';
+  personInputsEl.innerHTML = youInputHTML() + otherInputHTML();
+  wireInputs();
+  refreshCompatMeterLine();
+}
+
+document.querySelectorAll('#modeSelect .mode-card').forEach((card) => {
   card.addEventListener('click', () => {
     mode = card.dataset.mode;
     modeSelectEl.style.display = 'none';
-    compatFormEl.classList.add('active');
-    closeCompatModal();
-    compatResultsEl.innerHTML = '';
-    personInputsEl.innerHTML = youInputHTML() + otherInputHTML();
-    wireInputs();
-    refreshCompatMeterLine();
+    // Place mode gets its own follow-up question first (2026-08-26, user:
+    // "once you click place another menu shows up again and prompts us
+    // or other") - every other mode goes straight into the form as before.
+    if (mode === 'place') {
+      placeCountryTitleRowEl.style.display = '';
+      placeCountrySelectEl.style.display = 'grid';
+    } else {
+      enterCompatForm();
+    }
   });
+});
+
+document.querySelectorAll('#placeCountrySelect .mode-card').forEach((card) => {
+  card.addEventListener('click', () => {
+    placeCountryTitleRowEl.style.display = 'none';
+    placeCountrySelectEl.style.display = 'none';
+    enterCompatForm();
+    if (card.dataset.country === 'us') {
+      openUsPlacesModal();
+    } else {
+      const searchInput = document.querySelector('.source-search[data-person="B"]');
+      if (searchInput) searchInput.focus();
+    }
+  });
+});
+
+document.getElementById('backToModesFromPlace').addEventListener('click', (e) => {
+  e.preventDefault();
+  placeCountryTitleRowEl.style.display = 'none';
+  placeCountrySelectEl.style.display = 'none';
+  modeSelectEl.style.display = 'grid';
 });
 
 document.getElementById('backToModes').addEventListener('click', (e) => {
   e.preventDefault();
-  modeSelectEl.style.display = 'grid';
   compatFormEl.classList.remove('active');
   closeCompatModal();
+  // Place mode backs up to its own country question, not straight past it.
+  if (mode === 'place') {
+    placeCountryTitleRowEl.style.display = '';
+    placeCountrySelectEl.style.display = 'grid';
+  } else {
+    modeSelectEl.style.display = 'grid';
+  }
 });
 
 function parseDateInput(value) {
