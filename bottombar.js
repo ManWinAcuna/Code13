@@ -85,21 +85,20 @@
     /* Bottom bar visual design (2026-08-26, owner-provided). Grid instead of
        the old flex row so all 5 tabs stay perfectly even regardless of label
        width. */
+    /* Content sits LOW in the bar (2026-08-27, user, twice: "the nav bar
+       needs to go down more" / "still looks the same"). The first attempt
+       floored the safe-area padding - a no-op, since env() was already
+       reporting the real ~34pt inset; that full 34pt + 7px + centering
+       slack under the labels was itself the "gap". Now the safe-area
+       contribution is deliberately UNDERSHOT (env - 14px, floored at 6px)
+       and the track is shorter, so the icons/labels ride ~20pt lower,
+       close above the home indicator like a native tab bar - iOS happily
+       floats the indicator over a bar's padding zone. */
     .bb-bar { pointer-events: auto; display: grid; grid-template-columns: repeat(5, 1fr);
-      align-items: center; min-height: 84px;
-      padding: 7px max(8px, env(safe-area-inset-right)) calc(7px + env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left));
+      align-items: center; min-height: 68px;
+      padding: 6px max(8px, env(safe-area-inset-right)) max(calc(env(safe-area-inset-bottom) - 14px), 6px) max(8px, env(safe-area-inset-left));
       background: linear-gradient(to top, #020202 0%, rgba(3,3,3,.98) 70%, rgba(3,3,3,.94) 100%);
       border-top: 1px solid rgba(232,185,76,.12); }
-    /* Standalone floor (2026-08-27, user: gap of unpainted background below
-       the bar in the installed home-screen app) - env(safe-area-inset-bottom)
-       can resolve to 0 in some standalone WKWebView configurations even
-       though a real home-indicator strip is there, leaving that strip
-       unpainted below the bar's own edge. max() keeps the real value
-       whenever env() reports one honestly and only floors it to the
-       standard ~34pt home-indicator height when it doesn't. */
-    html.bb-standalone .bb-bar {
-      padding-bottom: calc(7px + max(env(safe-area-inset-bottom), 34px));
-    }
     .bb-tab { position: relative; height: 100%; width: 100%;
       display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px;
       background: none; border: none; cursor: pointer;
@@ -140,7 +139,7 @@
       .bb-tab[data-tab="today"].active:hover { color: var(--acc, #ffd45f); }
     }
     @media (max-width: 430px) {
-      .bb-bar { min-height: 76px; }
+      .bb-bar { min-height: 60px; }
       .bb-icon { width: 27px; height: 27px; }
       .bb-tab { font-size: 8px; letter-spacing: 1.4px; gap: 4px; }
     }
