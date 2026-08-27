@@ -311,21 +311,14 @@
   // hidden). Nulling the tables here makes every downstream block - the
   // heat strip, the NOW card, the hour-carrier line, the tap popup, the
   // heartbeat - skip naturally; hoursLocked swaps in the tease instead.
-  // lockedHourHint is captured BEFORE the null: the tease shows the
-  // reader's real best hour, veiled to its leading number (Boost13 copy
-  // spec: their own data sells harder than any sentence).
-  var hoursLocked = false, lockedHourHint = '', lockedFinHint = '';
+  // No leading-digit hint anymore (owner's call 2026-08-27, reversing the
+  // original Boost13 spec) - the tease is a flat line now, not a veiled
+  // peek at the reader's own real hour.
+  var hoursLocked = false;
   // Hours are monthly-and-above (owner call 2026-08-25): weekly members
-  // see the same veiled tease as free users here.
+  // see the same tease as free users here.
   if (rankedHours && !(window.c13HoursEntitled && c13HoursEntitled())) {
     hoursLocked = true;
-    var hintMatch = rankedHours[0].row.label.match(/^\d+/);
-    lockedHourHint = hintMatch ? hintMatch[0] : '';
-    // The money hour gets its own veiled tease (owner's call 2026-08-14).
-    if (finHour) {
-      var finMatch = finHour.row.label.match(/^\d+/);
-      lockedFinHint = finMatch ? finMatch[0] : '';
-    }
     hoursTable = null; rankedHours = null; finHour = null;
   }
 
@@ -722,10 +715,7 @@
       'The Hours',
       (window.c13SurfaceLine && c13SurfaceLine('hours', null))
         || 'The raise, the trade, the text sitting in your drafts. Right move at the wrong hour and it still goes sideways.',
-      lockedHourHint
-        ? 'Your best hour today starts with a ' + lockedHourHint + '.'
-          + (lockedFinHint ? ' Your money hour with a ' + lockedFinHint + '.' : '')
-        : "You know today's number. You don't know when it peaks.",
+      'Every hour carries its own charge. Yours are already mapped.',
       'hours'
     );
   } else {
