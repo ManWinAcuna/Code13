@@ -30,7 +30,11 @@
   // those links 404'd with a "product category required" error; regular
   // Payment Links work immediately on an unverified account.
   const PAY_LINKS = {
-    weekly: 'https://buy.stripe.com/5kQfZae609Kb4o1dJYcMM02',
+    // Slug is case-sensitive: "e6O9" has a capital letter O, not a zero -
+    // a zero-for-O transcription typo here 404'd the weekly checkout for
+    // a full day (caught 2026-08-27 against the Stripe dashboard's own
+    // copy button).
+    weekly: 'https://buy.stripe.com/5kQfZae6O9Kb4o1dJYcMM02',
     monthly: 'https://buy.stripe.com/8x26oA2o6aOff2F35kcMM01',
     lifetime: 'https://buy.stripe.com/5kQ28k9Qy4pRcUx9tIcMM00',
   };
