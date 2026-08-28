@@ -1638,6 +1638,19 @@ body::after {
   color: var(--yellow);
 }
 
+/* Profile's Membership box (2026-08-28) - same .bday-box shell as its
+   topbar neighbors, with a plain value line where those have an input.
+   Gold once entitled; free state carries the existing .c13-meter-plus
+   upgrade link inline. */
+.membership-box .membership-value {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  padding: 7px 0 6px;
+}
+.membership-box.member .membership-value { color: var(--yellow); }
+.membership-box .c13-meter-plus { margin-left: 6px; }
+
 /* Marks a mode-card as Code13+ only, right on the card so the lock is
    never a surprise after tapping (2026-08-27, user: "make sure to add a
    paywall on the united states, code13+ can have access to it"). */

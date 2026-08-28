@@ -27,6 +27,25 @@
   bdayInput.addEventListener('input', persist);
   timeInput.addEventListener('input', persist);
 
+  // Membership status (2026-08-28, user: "let people know what their
+  // current subscription status is in the profile"). Reads the same
+  // entitlement every gate uses (c13PlanTier, entitlements.js) - never a
+  // separate source that could disagree with what's actually unlocked.
+  // Free users can tap it to open the paywall; members see their tier.
+  (function renderMembership() {
+    const box = document.getElementById('membershipBox');
+    const valueEl = document.getElementById('membershipValue');
+    if (!box || !valueEl) return;
+    const TIER_LABEL = { weekly: 'Code13+ Weekly', monthly: 'Code13+ Monthly', lifetime: 'Code13+ Lifetime', dev: 'Code13+' };
+    const tier = window.c13PlanTier ? c13PlanTier() : null;
+    if (tier) {
+      valueEl.textContent = TIER_LABEL[tier] || 'Code13+';
+      box.classList.add('member');
+    } else {
+      valueEl.innerHTML = 'Free <button type="button" class="c13-meter-plus" onclick="c13OpenPaywall(\'generic\')">Get Code13+</button>';
+    }
+  })();
+
   // Called by auth-widget.js after a post-sign-in cloud pull, instead of a
   // full page reload - re-reads the just-synced profile straight into the
   // fields and re-renders in place.
