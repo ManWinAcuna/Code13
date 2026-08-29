@@ -230,7 +230,7 @@ function openEntryModal(entry) {
       </div>
       <div class="box stat-box">
         <div class="box-label">✨ 8 Day</div>
-        <div class="box-value">${(getFirstDayOfMonthImprint(dateObj, 8) || {}).lp || '-'}</div>
+        <div class="box-value">${(getBirthMonthImprint(dateObj, 8) || {}).lp || '-'}</div>
       </div>
       <div class="box stat-box">
         <div class="box-label">🔢 Missing</div>

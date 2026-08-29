@@ -74,14 +74,13 @@ function render() {
 
   setText('luckyNumber', r.luckyNumber);
   setText('missing', r.missing);
-  // "8 Day" = the FIRST 8-DAY IMPRINT (owner's correction 2026-08-29,
-  // "code13 should be giving 5 LP" for a 2003-01-03 birth): the Life Path
-  // carried by the first 8th-of-month on/after birth. Third meaning this
-  // box has had (first-28th universal -> birthdate's own universal ->
-  // this); getFirstDayOfMonthImprint (imprint-alignment.js) is the SAME
-  // function the Deep Compatibility imprint engine already uses for its
-  // "8-Day imprint" rows, so the box can never disagree with those again.
-  const first8 = getFirstDayOfMonthImprint(birthDate, 8);
+  // "8 Day" = the FIRST 8-DAY IMPRINT: the Life Path carried by the 8th
+  // of the BIRTH MONTH itself, even when that day falls before the birth
+  // date (owner's second correction 2026-08-29 - 04/15/1994 must give 8
+  // via April 8, not 9 via the on-or-after May 8; 01/03/2003 gives 5 via
+  // Jan 8). getBirthMonthImprint lives in imprint-alignment.js next to
+  // the engine's own on-or-after variant.
+  const first8 = getBirthMonthImprint(birthDate, 8);
   setText('twentyEightDay', first8 ? first8.lp : '-');
 
   // Non-monthly users get DECOY pinnacle data under the blur (see the

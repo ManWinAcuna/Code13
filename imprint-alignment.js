@@ -32,6 +32,41 @@ function ordinalSuffix(n) {
 // day-of-month ON OR AFTER birth (so someone born ON the target day gets
 // their own birth date back). Days 29-31 don't exist in every month, so
 // this walks forward to the first month that actually has enough days.
+// The Nth of the BIRTH MONTH itself, even when that calendar day falls
+// BEFORE the birth date (owner's correction 2026-08-29, two confirmed data
+// points: 04/15/1994's 8-Day imprint is April 8 1994 -> 35 -> 8, NOT the
+// on-or-after May 8 -> 36 -> 9; 01/03/2003's is Jan 8 -> 14 -> 5). Used by
+// the "8 Day" box; getFirstDayOfMonthImprint below keeps its original
+// on-or-after semantic for the Deep Compatibility imprint engine until the
+// owner rules on whether this birth-month rule applies there too.
+function getBirthMonthImprint(birthDate, targetDayOfMonth) {
+  const daysInMonth = new Date(birthDate.getFullYear(), birthDate.getMonth() + 1, 0).getDate();
+  if (targetDayOfMonth > daysInMonth) return null;
+  const targetDate = new Date(birthDate.getFullYear(), birthDate.getMonth(), targetDayOfMonth);
+
+  const mStr = String(targetDate.getMonth() + 1);
+  const dStr = String(targetDate.getDate());
+  const yStr = String(targetDate.getFullYear());
+  const fullSequence = mStr + dStr + yStr;
+
+  const pool = [];
+  let i = 0;
+  while (i < fullSequence.length) {
+    if (i + 1 < fullSequence.length) {
+      const twoDigits = fullSequence.substring(i, i + 2);
+      if (twoDigits === '11' || twoDigits === '22' || twoDigits === '33') {
+        pool.push(parseInt(twoDigits, 10));
+        i += 2;
+        continue;
+      }
+    }
+    pool.push(parseInt(fullSequence.charAt(i), 10));
+    i++;
+  }
+  const rawSum = pool.reduce((a, b) => a + b, 0);
+  return { date: targetDate, lp: runCustomReduction(rawSum) };
+}
+
 function getFirstDayOfMonthImprint(birthDate, targetDayOfMonth) {
   const birthDay = birthDate.getDate();
   let year = birthDate.getFullYear();
