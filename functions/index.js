@@ -91,10 +91,14 @@ exports.stripeWebhook = onRequest(
   async (req, res) => {
     let event;
     try {
+      // .trim(): the secret was hand-pasted into the Secret Manager console
+      // textarea, which happily stores an invisible trailing newline - and
+      // one DID sneak in on first setup (Stripe delivered a real purchase
+      // event and signature verification failed on it, 2026-08-28).
       event = Stripe.webhooks.constructEvent(
         req.rawBody,
         req.headers['stripe-signature'],
-        STRIPE_WEBHOOK_SECRET.value()
+        STRIPE_WEBHOOK_SECRET.value().trim()
       );
     } catch (err) {
       logger.error('signature verification failed', { message: err.message });
