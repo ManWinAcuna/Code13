@@ -74,15 +74,13 @@ function render() {
 
   setText('luckyNumber', r.luckyNumber);
   setText('missing', r.missing);
-  // "8 Day" = the FIRST 8-DAY IMPRINT: the Life Path carried by the first
-  // 8th-of-month on/after birth. Owner's final ruling 2026-08-29, two
-  // worked examples: born 3/17/1994 -> April 8 1994 -> 35 -> 8; born
-  // 1/3/2003 -> Jan 8 2003 -> 14 -> 5. (A birth-month-own-8th variant was
-  // briefly shipped between corrections and is wrong: it gives March 8 ->
-  // 7 for the 3/17 case.) getFirstDayOfMonthImprint is the SAME function
-  // the Deep Compatibility imprint engine uses for its 8-Day rows, so the
-  // box and the imprint breakdown always agree.
-  const first8 = getFirstDayOfMonthImprint(birthDate, 8);
+  // "8 Day" = the LP of the FIRST 8-DAY from birth, where an "8 day" is
+  // any day-of-month reducing to 8 (the 8th/17th/26th - NOT the 28th,
+  // which is its own number). Owner's final ruling 2026-08-29 after two
+  // wrong readings, worked examples: born 4/15/1994 -> April 17 -> 8;
+  // born 1/3/2003 -> Jan 8 -> 5. See getFirstEightDayImprint
+  // (imprint-alignment.js).
+  const first8 = getFirstEightDayImprint(birthDate);
   setText('twentyEightDay', first8 ? first8.lp : '-');
 
   // Non-monthly users get DECOY pinnacle data under the blur (see the
