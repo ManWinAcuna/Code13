@@ -74,14 +74,15 @@ function render() {
 
   setText('luckyNumber', r.luckyNumber);
   setText('missing', r.missing);
-  // "8 Day" now means the birthdate's own Universal Day Number (2026-08-26,
-  // user: found the "28 Day" rename left the number itself meaning
-  // something else - the first-28th-of-month imprint - than what the new
-  // label implied). r.twentyEightDay (numerology.js, untouched) is no
-  // longer read here; universalDayNumber (db-core.js) is the same function
-  // Today's own Universal Day display already uses, applied to the
-  // birthdate instead of today's date - reused, not reinvented.
-  setText('twentyEightDay', universalDayNumber(birthDate));
+  // "8 Day" = the FIRST 8-DAY IMPRINT (owner's correction 2026-08-29,
+  // "code13 should be giving 5 LP" for a 2003-01-03 birth): the Life Path
+  // carried by the first 8th-of-month on/after birth. Third meaning this
+  // box has had (first-28th universal -> birthdate's own universal ->
+  // this); getFirstDayOfMonthImprint (imprint-alignment.js) is the SAME
+  // function the Deep Compatibility imprint engine already uses for its
+  // "8-Day imprint" rows, so the box can never disagree with those again.
+  const first8 = getFirstDayOfMonthImprint(birthDate, 8);
+  setText('twentyEightDay', first8 ? first8.lp : '-');
 
   // Non-monthly users get DECOY pinnacle data under the blur (see the
   // c13PinnaclesGated block below) - the real values must never enter
