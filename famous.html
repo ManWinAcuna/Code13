@@ -13,7 +13,7 @@
 <link rel="icon" href="favicon-64.png?v=3" sizes="64x64">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <title>Famous Lookup</title>
-<link rel="stylesheet" href="style.css?v=19">
+<link rel="stylesheet" href="style.css?v=21">
 <link rel="stylesheet" href="godlike.css?v=47">
 </head>
 <body>
@@ -158,19 +158,19 @@
         <div class="box-value" id="compatMeScore">-</div>
       </div>
 
-      <div class="box stat-box">
-        <div class="box-label">🍀 Lucky Number</div>
-        <div class="box-value" id="luckyNumber">-</div>
-      </div>
-
-      <div class="box stat-box">
-        <div class="box-label">✨ 8 Day</div>
-        <div class="box-value" id="twentyEightDay">-</div>
-      </div>
-
-      <div class="box stat-box">
-        <div class="box-label">🔢 Missing</div>
-        <div class="box-value box-value-muted" id="missing">-</div>
+      <div class="core-chip-row">
+        <div class="core-chip" id="luckyNumberChip">
+          <div class="core-chip-label">Lucky Number</div>
+          <div class="core-chip-value" id="luckyNumber">-</div>
+        </div>
+        <div class="core-chip" id="twentyEightDayChip">
+          <div class="core-chip-label">8 Day</div>
+          <div class="core-chip-value" id="twentyEightDay">-</div>
+        </div>
+        <div class="core-chip core-chip-muted">
+          <div class="core-chip-label">Missing</div>
+          <div class="core-chip-value" id="missing">-</div>
+        </div>
       </div>
 
 
@@ -267,7 +267,7 @@
 <script src="banks/c13-bank-viet.js?v=2"></script>
 <script src="banks/c13-bank-western.js?v=2"></script>
 <script src="c13-copy.js?v=7"></script>
-<script src="render.js?v=44"></script>
+<script src="render.js?v=45"></script>
 <script src="famous.js?v=3"></script>
 <script src="godlike.js?v=2"></script>
 <script src="c13-tour.js?v=6"></script>
