@@ -324,14 +324,14 @@
       if (window.c13Entitled && c13Entitled()) {
         const reading = c13ComposePaidReading(r, birthDate, me);
         if (!reading) return;
-        body.innerHTML = '<div class="story-modal-title">Your Full Reading</div>' +
+        body.innerHTML = '<div class="story-modal-title">Code13+ Insight</div>' +
           reading.chapters.map((ch) =>
             '<div class="story-section"><div class="story-section-label">' + ch.title + '</div>' +
             ch.paras.filter(Boolean).map((p) => '<div class="story-section-body">' + p + '</div>').join('') + '</div>').join('');
       } else {
         const t = c13PaidTeaser(r, birthDate) || {};
         const cta = (window.C13B && C13B.bank14 && C13B.bank14.reading.ctas[0]) || 'Unlock My Full Reading';
-        body.innerHTML = '<div class="story-modal-title">Your Full Reading</div>' +
+        body.innerHTML = '<div class="story-modal-title">Code13+ Insight</div>' +
           (t.teaser ? '<div class="story-row">' + t.teaser + '</div>' : '') +
           (t.locked ? '<div class="story-row">' + t.locked + '</div>' : '') +
           '<div class="c13-lock-cta" style="margin-top:14px" onclick="document.getElementById(\'storyModalOverlay\').classList.remove(\'active\');c13OpenPaywall(\'reading\')">' + cta + '</div>';
