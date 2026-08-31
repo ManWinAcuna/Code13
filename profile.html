@@ -24,7 +24,7 @@ if (navigator.standalone === true && !sessionStorage.getItem('gk_sess')) {
 <link rel="icon" href="favicon-64.png?v=3" sizes="64x64">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <title>My Profile</title>
-<link rel="stylesheet" href="style.css?v=15">
+<link rel="stylesheet" href="style.css?v=16">
 <link rel="stylesheet" href="godlike.css?v=45">
 </head>
 <body>
@@ -144,24 +144,30 @@ if (navigator.standalone === true && !sessionStorage.getItem('gk_sess')) {
     <div class="pcycle-grid">
       <div class="pcycle-card" id="pyCard">
         <div class="pcycle-label">This Year</div>
-        <div class="pcycle-num" id="pyReduced">-</div>
+        <div class="pcycle-num-row">
+          <span class="pcycle-num" id="pyReduced">-</span>
+          <span class="pcycle-compound" id="pyRaw">-</span>
+        </div>
         <div class="pcycle-meaning" id="pyMeaning">-</div>
-        <div class="pcycle-bar"><div class="pcycle-bar-fill" id="pyBarFill"></div></div>
-        <div class="pcycle-compound" id="pyRaw">-</div>
+        <div class="pcycle-bar pcycle-bar-labeled"><div class="pcycle-bar-fill" id="pyBarFill"></div><span class="pcycle-bar-pill" id="pyBarPassed"></span><span class="pcycle-bar-pill pcycle-bar-pill-right" id="pyBarLeft"></span></div>
       </div>
       <div class="pcycle-card" id="pmCard">
         <div class="pcycle-label">This Month</div>
-        <div class="pcycle-num" id="pmReduced">-</div>
+        <div class="pcycle-num-row">
+          <span class="pcycle-num" id="pmReduced">-</span>
+          <span class="pcycle-compound" id="pmRaw">-</span>
+        </div>
         <div class="pcycle-meaning" id="pmMeaning">-</div>
-        <div class="pcycle-bar"><div class="pcycle-bar-fill" id="pmBarFill"></div></div>
-        <div class="pcycle-compound" id="pmRaw">-</div>
+        <div class="pcycle-bar pcycle-bar-labeled"><div class="pcycle-bar-fill" id="pmBarFill"></div><span class="pcycle-bar-pill" id="pmBarPassed"></span><span class="pcycle-bar-pill pcycle-bar-pill-right" id="pmBarLeft"></span></div>
       </div>
       <div class="pcycle-card" id="pdCard">
         <div class="pcycle-label">Today</div>
-        <div class="pcycle-num" id="pdReduced">-</div>
+        <div class="pcycle-num-row">
+          <span class="pcycle-num" id="pdReduced">-</span>
+          <span class="pcycle-compound" id="pdRaw">-</span>
+        </div>
         <div class="pcycle-meaning" id="pdMeaning">-</div>
         <div class="pcycle-bar"><div class="pcycle-bar-fill" id="pdBarFill"></div></div>
-        <div class="pcycle-compound" id="pdRaw">-</div>
       </div>
     </div>
     <!-- Static for the same no-layout-jump reason as coreNumbersStoryLink. -->
@@ -178,21 +184,6 @@ if (navigator.standalone === true && !sessionStorage.getItem('gk_sess')) {
         <div class="box-value" id="compatTodayScore">-</div>
       </div>
 
-      <div class="box stat-box">
-        <div class="box-label underline">📆 Days Left</div>
-        <div class="dayleft-row">
-          <div class="dayleft-tile">
-            <div class="dayleft-icon">🎂</div>
-            <div class="dayleft-value" id="daysUntilBirthday">-</div>
-            <div class="dayleft-caption">until Birthday</div>
-          </div>
-          <div class="dayleft-tile">
-            <div class="dayleft-icon">📅</div>
-            <div class="dayleft-value" id="daysUntilMonthlyDay">-</div>
-            <div class="dayleft-caption">until Monthly Day</div>
-          </div>
-        </div>
-      </div>
 
       <div class="box stat-box" id="bestWorstHourBox">
         <div class="box-label">⏰ Best / Worst Hour</div>
@@ -351,7 +342,7 @@ if (navigator.standalone === true && !sessionStorage.getItem('gk_sess')) {
 <script src="banks/c13-bank-cycles.js?v=2"></script>
 <script src="c13-copy.js?v=7"></script>
 <script src="c13-paid.js?v=1"></script>
-<script src="render.js?v=41"></script>
+<script src="render.js?v=42"></script>
 <script src="profile.js?v=2"></script>
 <script src="godlike.js?v=2"></script>
 <script src="c13-tour.js?v=6"></script>
