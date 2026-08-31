@@ -316,6 +316,7 @@
     link.className = anchor.className;
     link.textContent = '🔮 the full reading';
     anchor.insertAdjacentElement('afterend', link);
+    if (window.styleStoryLink) styleStoryLink(link, true);
     link.addEventListener('click', () => {
       const body = document.getElementById('storyModalBody');
       const overlay = document.getElementById('storyModalOverlay');
