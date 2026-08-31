@@ -25,7 +25,7 @@ if (navigator.standalone === true && !sessionStorage.getItem('gk_sess')) {
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <title>My Profile</title>
 <link rel="stylesheet" href="style.css?v=22">
-<link rel="stylesheet" href="godlike.css?v=48">
+<link rel="stylesheet" href="godlike.css?v=50">
 </head>
 <body>
 <div class="page">
@@ -47,22 +47,31 @@ if (navigator.standalone === true && !sessionStorage.getItem('gk_sess')) {
   <script src="bottombar.js?v=15"></script>
   <script src="update-check.js?v=4"></script>
 
-  <div class="topbar">
-    <div class="box bday-box">
-      <label for="bday">BDay</label>
-      <input type="text" id="bday" inputmode="numeric" placeholder="MM/DD/YYYY" maxlength="10" autocomplete="off">
+  <div class="topbar topbar-stacked">
+    <div class="box bday-box bday-row">
+      <span class="bday-row-icon">🎂</span>
+      <div class="bday-row-body">
+        <label for="bday">BDay</label>
+        <input type="text" id="bday" inputmode="numeric" placeholder="MM/DD/YYYY" maxlength="10" autocomplete="off">
+      </div>
     </div>
-    <div class="box bday-box">
-      <label for="btime">Birth Time <span class="optional-tag">optional</span> <span class="profile-note" id="profileSavedNote"></span></label>
-      <input type="time" id="btime">
+    <div class="box bday-box bday-row">
+      <span class="bday-row-icon">🕐</span>
+      <div class="bday-row-body">
+        <label for="btime">Birth Time <span class="optional-tag">optional</span> <span class="profile-note" id="profileSavedNote"></span></label>
+        <input type="time" id="btime">
+      </div>
     </div>
     <!-- Current plan, always visible (2026-08-28, user: "let people know
          what their current subscription status is in the profile"). Filled
          by profile.js from c13PlanTier(); free users get a tap-to-upgrade
          affordance, members just see their tier. -->
-    <div class="box bday-box membership-box" id="membershipBox">
-      <label>Membership</label>
-      <div class="membership-value" id="membershipValue">–</div>
+    <div class="box bday-box membership-box bday-row bday-row-premium" id="membershipBox">
+      <span class="bday-row-icon">👑</span>
+      <div class="bday-row-body">
+        <label>Membership</label>
+        <div class="membership-value" id="membershipValue">–</div>
+      </div>
     </div>
   </div>
 
