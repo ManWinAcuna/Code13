@@ -196,7 +196,12 @@
       color-scheme: dark; font-family: inherit; }
     .c13-tour-hint { margin-top: 5px; font-size: 9.5px; color: #77705f; letter-spacing: .05em; }
     .c13-tour-hint.err { color: #e5393f; }
-    #c13TourHelp { position: fixed; top: calc(env(safe-area-inset-top, 0px) + 56px);
+    /* Was 56px down, well below the auth widget's own top:10px (style.css)
+       - the two floating corner icons sat at different heights and read
+       as unrelated (owner 2026-09-01: "the floating ?/cloud icons feel
+       random"). Aligned to the same top offset so they sit as a matched
+       pair, opposite corners. */
+    #c13TourHelp { position: fixed; top: calc(env(safe-area-inset-top, 0px) + 10px);
       left: 10px; z-index: 95; width: 30px; height: 30px; border-radius: 50%;
       background: rgba(13, 12, 10, .92); border: 1px solid rgba(255, 255, 255, .14);
       color: #77705f; font-size: 14px; cursor: pointer; font-family: inherit;
