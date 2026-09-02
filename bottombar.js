@@ -7,6 +7,9 @@
   // Code13 ships only the 8 agreed pages (no Markets/Stable/EMAX/Cloud
   // Restore - those are numerology-app-only, see project_code13_boost13_spec
   // memory: "strictly the 8, no exceptions").
+  // 2026-09-04: Letterology added as a 9th tool (owner-authorized, ported
+  // from numerology-app) - the "strictly 8" rule was about NOT copying the
+  // Markets/Stable/EMAX pages, not a hard cap on ever adding a tool.
   // Today stands alone, dead center (owner's call 2026-08-13) - the same
   // center-slot treatment the Stable horse gets in numerology-app.
   // Database is promoted to its own tab (it's the flagship paid feature).
@@ -37,7 +40,8 @@
       { href: 'calculator.html', icon: '🧮', label: 'Calculator' },
       { href: 'compatibility.html', icon: '🤝', label: 'Compatibility' },
       { href: 'database.html', icon: '🗂', label: 'Database' },
-    ], match: ['calculator', 'compatibility', 'database', 'category'] },
+      { href: 'letterology.html', icon: '🔤', label: 'Letterology' },
+    ], match: ['calculator', 'compatibility', 'database', 'category', 'letterology'] },
     { id: 'profile', label: 'Profile', href: 'profile.html', match: ['profile'] },
   ];
 

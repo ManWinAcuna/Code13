@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#000000">
+<style>html{background:#000}</style>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="favicon.svg?v=3" type="image/svg+xml">
+<link rel="icon" href="favicon-64.png?v=3" sizes="64x64">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<title>Letterology</title>
+<link rel="stylesheet" href="style.css?v=22">
+<link rel="stylesheet" href="godlike.css?v=52">
+</head>
+<body>
+<div class="page">
+
+  <nav class="topnav">
+    <a href="stable.html" class="nav-link">🐎 Stable</a>
+    <a href="profile.html" class="nav-link">My Profile</a>
+    <a href="sports-betting.html" class="nav-link">Sports Betting</a>
+    <a href="stocks.html" class="nav-link">Stocks</a>
+    <a href="emax.html" class="nav-link">EMAX</a>
+    <a href="calculator.html" class="nav-link">Calculator</a>
+    <a href="famous.html" class="nav-link">Famous Lookup</a>
+    <a href="calendar.html" class="nav-link">Calendar</a>
+    <a href="astrology.html" class="nav-link">Astrology</a>
+    <a href="letterology.html" class="nav-link active">Letterology</a>
+    <a href="database.html" class="nav-link">Database</a>
+    <a href="compatibility.html" class="nav-link">Compatibility Calculator</a>
+  </nav>
+  <script src="storage-scope.js?v=1"></script>
+  <script src="nav-scroll.js"></script>
+  <script src="bottombar.js?v=16"></script>
+  <script src="update-check.js?v=4"></script>
+
+  <div class="ltr-wrap">
+
+    <div class="ltr-header">
+      <div class="ltr-header-text">
+        <div class="ltr-title">🔤 Letterology</div>
+        <div class="ltr-subtitle">Decode the numerical structure of any word, name, or phrase.</div>
+      </div>
+      <button type="button" class="ltr-settings-btn" id="ltrSettingsBtn" aria-label="Reduction Settings"><span aria-hidden="true">⚙️</span><span class="ltr-settings-btn-text">Reduction Settings</span></button>
+    </div>
+
+    <div class="topbar">
+      <div class="box bday-box ltr-input-box">
+        <label for="ltrWord">Word</label>
+        <input type="text" id="ltrWord" placeholder="Type a word, name, or phrase" autocomplete="off" autocapitalize="characters">
+        <button type="button" class="ltr-clear-btn" id="ltrClearBtn" aria-label="Clear" style="display:none">×</button>
+      </div>
+    </div>
+
+    <div class="ltr-notice" id="ltrNotice" style="display:none">Numbers and symbols are not included in the calculation.</div>
+
+    <div class="ltr-mode-row" id="ltrModeRow">
+      <button type="button" class="ltr-mode-btn" data-mode="reduced">Reduced</button>
+      <button type="button" class="ltr-mode-btn active" data-mode="master">Master</button>
+      <button type="button" class="ltr-mode-btn" data-mode="positional">Positional</button>
+    </div>
+    <div class="ltr-mode-explain" id="ltrModeExplain"></div>
+
+    <div id="ltrEmpty"></div>
+
+    <div id="ltrMain"></div>
+
+    <button type="button" class="ltr-copy-btn" id="ltrCopyBtn" style="display:none">Copy Results</button>
+
+    <div class="ltr-word-rows" id="ltrWordRows"></div>
+
+    <div class="ltr-results" id="ltrResults"></div>
+
+    <details class="collapsible ltr-lettermath" id="ltrLetterMathPanel">
+      <summary>Show Letter Math</summary>
+      <div class="ltr-lettermath-body" id="ltrLettersGroups"></div>
+    </details>
+
+    <div class="ltr-settings-panel" id="ltrSettingsPanel" hidden>
+      <div class="ltr-settings-title">Reduction Settings</div>
+      <div class="ltr-settings-hint">Conserved numbers are never reduced further.</div>
+      <div class="ltr-conserved-list" id="ltrConservedList"></div>
+      <div class="ltr-add-row">
+        <input type="text" id="ltrAddConserved" inputmode="numeric" placeholder="Add a number">
+        <button type="button" class="btn" id="ltrAddConservedBtn">Add</button>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+<script src="scroll-viewport.js"></script>
+<script src="letterology.js?v=3"></script>
+<script src="firebase-loader.js?v=1"></script>
+<script src="godlike.js?v=2"></script>
+</body>
+</html>
